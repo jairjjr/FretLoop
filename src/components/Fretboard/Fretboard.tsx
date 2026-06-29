@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Note, Interval } from 'tonal';
-import { TuningDef, TUNINGS, TuningName } from '../../core/types';
+import { TUNINGS, TuningName } from '../../core/types';
 import { Settings2 } from 'lucide-react';
 
 interface FretboardProps {
