@@ -33,10 +33,11 @@ export const Sequencer: React.FC<SequencerProps> = ({
   bpm, onBpmChange, timeSignature, onTimeSignatureChange
 }) => {
   const [selectedRoot, setSelectedRoot] = useState("C");
+  const [selectedAccidental, setSelectedAccidental] = useState("");
   const [selectedType, setSelectedType] = useState("maj");
 
   const handleAdd = () => {
-    const chordStr = `${selectedRoot}${selectedType === "maj" ? "" : selectedType}`;
+    const chordStr = `${selectedRoot}${selectedAccidental}${selectedType === "maj" ? "" : selectedType}`;
     const parsed = TheoryEngine.parseChord(chordStr);
     
     // Extraemos el numerador del compás para la duración base del bloque
@@ -112,6 +113,19 @@ export const Sequencer: React.FC<SequencerProps> = ({
                   ${selectedRoot === root ? 'bg-primary-main text-white drop-shadow-[0_0_10px_rgba(99,102,241,0.6)] scale-110' : 'bg-dark-700 text-gray-400 hover:bg-dark-700/80 hover:text-white'}`}
               >
                 {root}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-1 justify-center bg-dark-900 p-1.5 rounded-xl border border-white/5">
+            {[{ label: "♮", val: "" }, { label: "#", val: "#" }, { label: "b", val: "b" }].map(acc => (
+              <button 
+                key={acc.label}
+                onClick={() => setSelectedAccidental(acc.val)}
+                className={`w-10 h-10 rounded-lg font-bold text-lg transition-all active:scale-95
+                  ${selectedAccidental === acc.val ? 'bg-primary-main text-white shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+              >
+                {acc.label}
               </button>
             ))}
           </div>
