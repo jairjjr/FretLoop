@@ -50,13 +50,13 @@ export class AudioEngine {
 
     // Drum Machine: HiHat (Platillo)
     this.hihat = new Tone.MetalSynth({
-      frequency: 200,
       envelope: { attack: 0.001, decay: 0.05, release: 0.01 },
       harmonicity: 5.1,
       modulationIndex: 32,
       resonance: 4000,
       octaves: 1.5
     }).toDestination();
+    this.hihat.frequency.value = 200;
     this.hihat.volume.value = -18;
 
     this.isSetup = true;
