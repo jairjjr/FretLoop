@@ -1,10 +1,7 @@
 import { Chord, Key, Scale } from "tonal";
-import { ChordData, MentalShortcut, ProgressionAnalysis } from "./types";
+import { ChordData, ProgressionAnalysis, TheoryLesson } from "./types";
 
 export class TheoryEngine {
-  /**
-   * Procesa un string de acorde (ej. "Am7") y devuelve sus datos estructurados.
-   */
   public static parseChord(chordName: string): ChordData | null {
     const chordInfo = Chord.get(chordName);
     if (chordInfo.empty) return null;
@@ -17,59 +14,90 @@ export class TheoryEngine {
     };
   }
 
-  /**
-   * Analiza una lista de acordes para detectar la tonalidad global 
-   * y sugerir el mejor "Atajo Mental" para improvisar.
-   */
   public static analyzeProgression(chordNames: string[]): ProgressionAnalysis {
     const chords = chordNames
       .map(this.parseChord)
       .filter((c): c is ChordData => c !== null);
 
     if (chords.length === 0) {
-      return { globalKey: "Unknown", chords: [], shortcut: null };
+      return { globalKey: "Unknown", chords: [], lesson: null };
     }
 
-    // Heurística simple MVP: El primer acorde suele dictar la tonalidad.
+    // Heurística de Centro Tonal: nos basamos en el primer acorde de la secuencia
     const primaryChord = chords[0];
     const isMinor = primaryChord.type.includes("m") && !primaryChord.type.includes("maj");
     
-    let globalKey = `${primaryChord.root} ${isMinor ? 'Minor' : 'Major'}`;
-    let shortcut: MentalShortcut | null = null;
+    let globalKey = `${primaryChord.root} ${isMinor ? 'Menor' : 'Mayor'}`;
+    let lesson: TheoryLesson | null = null;
 
-    // Lógica Pedagógica: Atajos Mentales
     if (!isMinor) {
-      // Si la tonalidad es Mayor, el atajo clásico de guitarra (Country/Soul)
-      // es usar la Pentatónica de la Relativa Menor.
       const keyInfo = Key.majorKey(primaryChord.root);
       const relativeMinorRoot = keyInfo.minorRelative;
       
-      const scaleName = `${relativeMinorRoot} minor pentatonic`;
-      const scaleNotes = Scale.get(scaleName).notes;
-
-      shortcut = {
-        conceptName: `Pentatónica de la Relativa Menor (${relativeMinorRoot}m)`,
-        targetScale: scaleName,
-        scaleNotes: scaleNotes,
-        explanation: `Para improvisar sobre una progresión en ${primaryChord.root} Mayor con un toque Soul/Blues, toca la pentatónica de ${relativeMinorRoot} menor. Comparte las mismas notas clave pero enfoca tu fraseo desde una perspectiva más familiar en el mástil.`
+      lesson = {
+        tonalCenter: globalKey,
+        explanation: `Analizando toda la secuencia, tu "Centro Tonal" (el hogar de la canción) es ${primaryChord.root} Mayor. Puedes usar la escala mayor completa para un sonido heroico o feliz, pero el atajo mental clásico del Rock y Soul es pensar en la pentatónica de su relativa menor (${relativeMinorRoot}m).`,
+        scaleSuggestions: [
+          {
+            id: 'major-penta',
+            name: `Penta ${primaryChord.root} Mayor`,
+            scaleName: `${primaryChord.root} major pentatonic`,
+            notes: Scale.get(`${primaryChord.root} major pentatonic`).notes,
+            description: "Sonido clásico, alegre y muy seguro."
+          },
+          {
+            id: 'relative-minor-penta',
+            name: `Penta ${relativeMinorRoot} Menor (Atajo)`,
+            scaleName: `${relativeMinorRoot} minor pentatonic`,
+            notes: Scale.get(`${relativeMinorRoot} minor pentatonic`).notes,
+            description: "Mismas notas que la mayor, pero con una forma visual más rock/blues."
+          },
+          {
+            id: 'major-scale',
+            name: `Escala ${primaryChord.root} Mayor (Jónica)`,
+            scaleName: `${primaryChord.root} major`,
+            notes: Scale.get(`${primaryChord.root} major`).notes,
+            description: "Escala completa con 7 notas. Perfecta para melodías ricas."
+          }
+        ]
       };
     } else {
-      // Si la tonalidad es Menor, sugerimos la Pentatónica Menor directamente 
-      const scaleName = `${primaryChord.root} minor pentatonic`;
-      const scaleNotes = Scale.get(scaleName).notes;
+      const keyInfo = Key.minorKey(primaryChord.root);
+      const relativeMajorRoot = keyInfo.relativeMajor;
 
-      shortcut = {
-        conceptName: `Pentatónica Menor Base (${primaryChord.root}m)`,
-        targetScale: scaleName,
-        scaleNotes: scaleNotes,
-        explanation: `Estás en una tonalidad menor. Tu "zona segura" es la Pentatónica de ${primaryChord.root} menor. Ubica las notas rojas (raíz) en el mástil como tu punto de anclaje.`
+      lesson = {
+        tonalCenter: globalKey,
+        explanation: `Estás navegando en una tonalidad Menor (${primaryChord.root}m). La pentatónica menor es tu territorio seguro e infalible. Si quieres darle un giro más brillante a tu solo, piensa en su relativa mayor (${relativeMajorRoot}).`,
+        scaleSuggestions: [
+          {
+            id: 'minor-penta',
+            name: `Penta ${primaryChord.root} Menor`,
+            scaleName: `${primaryChord.root} minor pentatonic`,
+            notes: Scale.get(`${primaryChord.root} minor pentatonic`).notes,
+            description: "Tu zona de confort clásica. Triste, rockera o bluesera."
+          },
+          {
+            id: 'minor-scale',
+            name: `Escala ${primaryChord.root} Menor Natural`,
+            scaleName: `${primaryChord.root} minor`,
+            notes: Scale.get(`${primaryChord.root} minor`).notes,
+            description: "Escala completa con 7 notas. Ideal para pasajes épicos o melancólicos."
+          },
+          {
+            id: 'relative-major-penta',
+            name: `Penta ${relativeMajorRoot} Mayor (Atajo)`,
+            scaleName: `${relativeMajorRoot} major pentatonic`,
+            notes: Scale.get(`${relativeMajorRoot} major pentatonic`).notes,
+            description: "Un respiro alegre. Mismas notas, distinto enfoque en el diapasón."
+          }
+        ]
       };
     }
 
     return {
       globalKey,
       chords,
-      shortcut
+      lesson
     };
   }
 }
