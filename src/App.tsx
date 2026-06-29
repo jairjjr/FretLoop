@@ -42,21 +42,16 @@ function App() {
 
   // Sincronización con el motor de audio
   useEffect(() => {
-    AudioEngine.init().then(() => {
-      AudioEngine.setBpm(bpm);
-    });
+    AudioEngine.setBpm(bpm);
   }, [bpm]);
 
   useEffect(() => {
-    AudioEngine.init().then(() => {
-      AudioEngine.setTimeSignature(timeSignature);
-    });
+    AudioEngine.setTimeSignature(timeSignature);
   }, [timeSignature]);
 
   const handlePlay = async () => {
     if (blocks.length === 0) return;
     
-    await AudioEngine.init();
     setIsPlaying(true);
     
     AudioEngine.playSequence(blocks, (chordName, blockId) => {
