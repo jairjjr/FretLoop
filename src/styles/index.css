@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
 @layer utilities {
   .glass-panel {
     @apply bg-glass-gradient backdrop-blur-md border border-white/10 shadow-xl rounded-2xl;

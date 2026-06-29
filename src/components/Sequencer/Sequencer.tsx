@@ -108,7 +108,7 @@ export const Sequencer: React.FC<SequencerProps> = ({
               <button 
                 key={root}
                 onClick={() => setSelectedRoot(root)}
-                className={`w-11 h-11 rounded-full font-bold text-lg transition-all 
+                className={`w-11 h-11 rounded-full font-bold text-lg transition-all active:scale-95
                   ${selectedRoot === root ? 'bg-primary-main text-white drop-shadow-[0_0_10px_rgba(99,102,241,0.6)] scale-110' : 'bg-dark-700 text-gray-400 hover:bg-dark-700/80 hover:text-white'}`}
               >
                 {root}
@@ -121,7 +121,7 @@ export const Sequencer: React.FC<SequencerProps> = ({
               <button 
                 key={type.val}
                 onClick={() => setSelectedType(type.val)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all 
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95
                   ${selectedType === type.val ? 'bg-accent-blue text-white shadow-lg shadow-blue-500/30' : 'bg-dark-700 text-gray-400 hover:bg-dark-700/80 hover:text-white'}`}
               >
                 {type.label}
@@ -131,7 +131,7 @@ export const Sequencer: React.FC<SequencerProps> = ({
 
           <button 
             onClick={handleAdd}
-            className="xl:ml-auto bg-dark-700 hover:bg-white/10 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition-all border border-white/10 font-bold w-full xl:w-auto justify-center"
+            className="xl:ml-auto bg-dark-700 hover:bg-white/10 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition-all active:scale-95 border border-white/10 font-bold w-full xl:w-auto justify-center"
           >
             <Plus size={20} /> Insertar al Loop
           </button>

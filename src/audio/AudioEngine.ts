@@ -10,21 +10,24 @@ export class AudioEngine {
 
   public static async init() {
     if (this.isInitialized) return;
-    await Tone.start();
-    
-    // Sintetizador para Acordes (Sonido suave tipo Rhodes/Pad)
-    this.synth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: "triangle" },
-      envelope: { attack: 0.05, decay: 0.2, sustain: 0.8, release: 1.5 }
-    }).toDestination();
-    this.synth.volume.value = -12;
+    try {
+      await Tone.start();
+      
+      this.synth = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: "triangle" },
+        envelope: { attack: 0.05, decay: 0.2, sustain: 0.8, release: 1.5 }
+      }).toDestination();
+      this.synth.volume.value = -12;
 
-    // Sintetizador para el "Kick" (Metrónomo)
-    this.clickSynth = new Tone.MembraneSynth().toDestination();
-    this.clickSynth.volume.value = -20;
+      this.clickSynth = new Tone.MembraneSynth().toDestination();
+      this.clickSynth.volume.value = -20;
 
-    Tone.Transport.bpm.value = 120;
-    this.isInitialized = true;
+      Tone.Transport.bpm.value = 120;
+      this.isInitialized = true;
+    } catch (e) {
+      console.error("El navegador bloqueó Tone.js. Requiere interacción del usuario.", e);
+      alert("⚠️ Tu navegador está bloqueando el audio. Por favor, haz clic o toca la pantalla primero para habilitar el sonido.");
+    }
   }
 
   public static setTimeSignature(ts: TimeSignature) {

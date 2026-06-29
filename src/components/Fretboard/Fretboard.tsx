@@ -95,7 +95,7 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
 
       {/* SVG del Mástil */}
       <div className="w-full overflow-x-auto glass-panel p-4 -mt-4 rounded-tl-none border-t border-white/10 shadow-2xl">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto drop-shadow-2xl">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[800px] h-auto drop-shadow-2xl">
           <rect x={paddingX} y={paddingY} width={width - 2 * paddingX} height={height - 2 * paddingY} fill="#1c1c26" rx="5" />
           
           {fretPositions.map((pos, i) => (
