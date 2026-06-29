@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Sequencer } from './components/Sequencer/Sequencer';
 import { Fretboard } from './components/Fretboard/Fretboard';
 import { TheoryEngine } from './core/TheoryEngine';
