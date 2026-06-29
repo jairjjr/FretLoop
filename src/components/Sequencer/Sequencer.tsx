@@ -21,8 +21,8 @@ interface SequencerProps {
 
 const ROOTS = ["C", "D", "E", "F", "G", "A", "B"];
 const TYPES = [
-  { label: "May", val: "maj" },
-  { label: "Men", val: "m" },
+  { label: "Maj", val: "maj" },
+  { label: "min", val: "m" },
   { label: "7", val: "7" },
   { label: "m7", val: "m7" },
   { label: "maj7", val: "maj7" }
@@ -155,7 +155,6 @@ export const Sequencer: React.FC<SequencerProps> = ({
                 `}
               >
                 <span className="text-3xl font-extrabold text-white/90">{block.chord?.name || "Silencio"}</span>
-                <span className="text-[10px] text-gray-500 mt-1 uppercase font-bold">{block.durationInBeats} Tiempos</span>
                 
                 <button 
                   onClick={() => onRemoveBlock(block.id)}

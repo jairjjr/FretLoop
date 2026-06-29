@@ -53,12 +53,15 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
         const noteName = Note.transpose(openNote, Interval.fromSemitones(f));
         const pc = cleanNote(noteName);
         
-        let status = 'none';
-        if (rootClass === pc) status = 'root';
-        else if (activeClasses.includes(pc)) status = 'chord';
-        else if (scaleClasses.includes(pc)) status = 'scale';
+        const isRoot = rootClass === pc;
+        const isChord = activeClasses.includes(pc);
+        const isScale = scaleClasses.includes(pc);
 
-        stringData.push({ noteName, pc, status });
+        if (!isRoot && !isChord && !isScale) {
+          stringData.push({ noteName, pc, show: false });
+        } else {
+          stringData.push({ noteName, pc, show: true, isRoot, isChord, isScale });
+        }
       }
       matrix.push(stringData);
     }
@@ -115,17 +118,21 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
           {fretboardMatrix.map((stringData, s) => {
             const y = paddingY + s * stringSpacing;
             return stringData.map((data, f) => {
-              if (data.status === 'none') return null;
+              if (!data.show) return null;
               const cx = f === 0 ? paddingX / 2 : (fretPositions[f - 1] + fretPositions[f]) / 2;
               
-              let fill = "#1e293b", stroke = "none", textColor = "white";
-              if (data.status === 'root') fill = "#ef4444";
-              else if (data.status === 'chord') fill = "#3b82f6";
-              else if (data.status === 'scale') { fill = "#13131a"; stroke = "#eab308"; textColor = "#eab308"; }
+              let fill = "#1e293b";
+              if (data.isRoot) fill = "#ef4444";
+              else if (data.isChord) fill = "#3b82f6";
+              else if (data.isScale) fill = "#13131a";
+              
+              const stroke = data.isScale ? "#eab308" : "none";
+              const strokeWidth = data.isScale ? "2" : "0";
+              const textColor = data.isScale && !data.isChord && !data.isRoot ? "#eab308" : "white";
               
               return (
                 <g key={`note-${s}-${f}`} className="transition-all duration-300">
-                  <circle cx={cx} cy={y} r="12" fill={fill} stroke={stroke} strokeWidth="2" className={data.status !== 'scale' ? "drop-shadow-md" : ""} />
+                  <circle cx={cx} cy={y} r="12" fill={fill} stroke={stroke} strokeWidth={strokeWidth} className={!data.isScale || data.isRoot || data.isChord ? "drop-shadow-md" : ""} />
                   <text x={cx} y={y + 4} fontSize="11" textAnchor="middle" fill={textColor} fontWeight="bold">{data.pc}</text>
                 </g>
               );
