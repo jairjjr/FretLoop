@@ -37,8 +37,7 @@ function App() {
     }
   }, [progression.lesson]);
 
-  // Acorde sonando en este momento exacto
-  const currentChordData = currentChordName ? TheoryEngine.parseChord(currentChordName) : null;
+
 
   // Actualización dinámica: Si el usuario cambia los bloques mientras suena, actualiza la partitura
   useEffect(() => {
