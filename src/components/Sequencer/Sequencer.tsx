@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TimeBlock, TimeSignature } from '../../core/types';
 import { TheoryEngine } from '../../core/TheoryEngine';
 import { Play, Square, Plus, Trash2, Clock, Activity } from 'lucide-react';
@@ -35,6 +35,35 @@ export const Sequencer: React.FC<SequencerProps> = ({
   const [selectedRoot, setSelectedRoot] = useState("C");
   const [selectedAccidental, setSelectedAccidental] = useState("");
   const [selectedType, setSelectedType] = useState("maj");
+  const [selectedBars, setSelectedBars] = useState(1);
+
+  // Estado Local de String para evitar el 'Cero Fantasma' al borrar
+  const [localBpm, setLocalBpm] = useState(bpm.toString());
+
+  useEffect(() => {
+    setLocalBpm(bpm.toString());
+  }, [bpm]);
+
+  const handleBpmInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setLocalBpm(val);
+    const num = parseInt(val, 10);
+    if (!isNaN(num) && num >= 60 && num <= 200) {
+      onBpmChange(num);
+    }
+  };
+
+  const handleBpmBlur = () => {
+    let num = parseInt(localBpm, 10);
+    // Validación de seguridad (Zero-Trust)
+    if (isNaN(num) || num < 60) num = 60;
+    if (num > 200) num = 200;
+    
+    setLocalBpm(num.toString());
+    if (bpm !== num) {
+      onBpmChange(num);
+    }
+  };
 
   const handleAdd = () => {
     const chordStr = `${selectedRoot}${selectedAccidental}${selectedType === "maj" ? "" : selectedType}`;
@@ -46,7 +75,7 @@ export const Sequencer: React.FC<SequencerProps> = ({
     onAddBlock({
       id: Math.random().toString(36).substring(7),
       chord: parsed,
-      durationInBeats: beatsPerBar 
+      durationInBeats: beatsPerBar * selectedBars
     });
   };
 
@@ -90,8 +119,9 @@ export const Sequencer: React.FC<SequencerProps> = ({
               <input 
                 type="number"
                 min="60" max="200"
-                value={bpm}
-                onChange={(e) => onBpmChange(Number(e.target.value))}
+                value={localBpm}
+                onChange={handleBpmInput}
+                onBlur={handleBpmBlur}
                 className="w-14 bg-dark-800 text-white text-sm font-bold text-center rounded border border-white/10 px-1 py-0.5 focus:outline-none focus:border-primary-main"
               />
               <span className="text-[10px] text-gray-400 font-normal mt-0.5">BPM</span>
@@ -154,12 +184,31 @@ export const Sequencer: React.FC<SequencerProps> = ({
             ))}
           </div>
 
-          <button 
-            onClick={handleAdd}
-            className="xl:ml-auto bg-dark-700 hover:bg-white/10 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition-all active:scale-95 border border-white/10 font-bold w-full xl:w-auto justify-center"
-          >
-            <Plus size={20} /> Insertar al Loop
-          </button>
+          <div className="flex flex-col xl:flex-row items-center gap-4 xl:ml-auto">
+            {/* Selector de Duración (Compases) */}
+            <div className="flex gap-1 bg-dark-900 p-1.5 rounded-xl border border-white/5">
+              {[1, 2, 3, 4].map(num => (
+                <button
+                  key={num}
+                  onClick={() => setSelectedBars(num)}
+                  className={`w-12 h-10 rounded-lg font-bold text-sm transition-all active:scale-95
+                    ${selectedBars === num 
+                      ? 'bg-accent-blue text-white shadow-lg shadow-blue-500/20' 
+                      : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                  title={`${num} Compás${num > 1 ? 'es' : ''}`}
+                >
+                  x{num}
+                </button>
+              ))}
+            </div>
+
+            <button 
+              onClick={handleAdd}
+              className="bg-dark-700 hover:bg-white/10 text-white px-5 py-3 rounded-xl flex items-center gap-2 transition-all active:scale-95 border border-white/10 font-bold w-full xl:w-auto justify-center"
+            >
+              <Plus size={20} /> Insertar al Loop
+            </button>
+          </div>
         </div>
 
         {/* Timeline Visual */}
@@ -169,26 +218,41 @@ export const Sequencer: React.FC<SequencerProps> = ({
               <p className="text-gray-500 font-medium">Línea de tiempo vacía. Combina un Tono Raíz y un Modificador arriba, luego insértalo.</p>
             </div>
           ) : (
-            blocks.map(block => (
-              <div 
-                key={block.id}
-                className={`relative flex-shrink-0 w-28 h-28 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-300 group snap-center
-                  ${activeBlockId === block.id 
-                    ? 'border-primary-main bg-indigo-900/40 scale-105 drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]' 
-                    : 'border-white/10 bg-dark-800 hover:border-white/20'
-                  }
-                `}
-              >
-                <span className="text-3xl font-extrabold text-white/90">{block.chord?.name || "Silencio"}</span>
-                
-                <button 
-                  onClick={() => onRemoveBlock(block.id)}
-                  className="absolute -top-3 -right-3 bg-dark-900 border border-accent-red p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-accent-red hover:scale-110"
+            blocks.map(block => {
+              // Calcular ancho base (1 compás en 4/4 = 4 beats = 7rem = 112px).
+              // 1 beat = 1.75rem. Min-width base para legibilidad.
+              const blockWidthRem = Math.max(7, block.durationInBeats * 1.75);
+              const beatsPerBar = parseInt(timeSignature.split('/')[0]);
+              const blockBars = block.durationInBeats / beatsPerBar;
+
+              return (
+                <div 
+                  key={block.id}
+                  style={{ width: `${blockWidthRem}rem` }}
+                  className={`relative flex-shrink-0 h-28 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-300 group snap-center
+                    ${activeBlockId === block.id 
+                      ? 'border-primary-main bg-indigo-900/40 scale-105 drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]' 
+                      : 'border-white/10 bg-dark-800 hover:border-white/20'
+                    }
+                  `}
                 >
-                  <Trash2 size={14} color="white" />
-                </button>
-              </div>
-            ))
+                  <span className="text-3xl font-extrabold text-white/90">{block.chord?.name || "Silencio"}</span>
+                  
+                  {blockBars > 1 && (
+                    <span className="text-xs text-accent-blue font-bold mt-1 bg-accent-blue/10 px-2 py-0.5 rounded-full border border-accent-blue/20">
+                      {blockBars} Compases
+                    </span>
+                  )}
+                  
+                  <button 
+                    onClick={() => onRemoveBlock(block.id)}
+                    className="absolute -top-3 -right-3 bg-dark-900 border border-accent-red p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-accent-red hover:scale-110"
+                  >
+                    <Trash2 size={14} color="white" />
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </div>

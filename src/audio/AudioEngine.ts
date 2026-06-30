@@ -64,8 +64,13 @@ export class AudioEngine {
   public static async startAudioContext() {
     this.setupInstruments();
     if (!this.isStarted) {
-      await Tone.start();
-      this.isStarted = true;
+      try {
+        await Tone.start();
+        this.isStarted = true;
+      } catch (error) {
+        // Fallback defensivo si el navegador bloquea el arranque asíncrono
+        console.warn("FretLoop AudioEngine: Autoplay policy previno el inicio de Tone.js. Requiere interacción manual previa.", error);
+      }
     }
   }
 
