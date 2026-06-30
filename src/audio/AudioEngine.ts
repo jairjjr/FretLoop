@@ -127,7 +127,6 @@ export class AudioEngine {
     this.stop();
     this.lastCallback = onChordChange;
 
-    const ticksPerBeat = Tone.Time("4n").toTicks();
     let eighthNoteCount = 0;
     
     this.drumLoop = new Tone.Loop((time) => {
@@ -161,7 +160,7 @@ export class AudioEngine {
     }, "8n").start(0);
 
     // Reutilizamos la lógica de inyección de bloques
-    this.currentPart = new Tone.Part(() => {}, []).start(0); 
+    this.currentPart = new Tone.Part<any>(() => {}, []).start(0); 
     this.updateSequence(blocks);
 
     Tone.Transport.start("+0.1");

@@ -13,7 +13,7 @@ interface FretboardProps {
 const FRET_COUNT = 22;
 const STRING_COUNT = 6;
 
-export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange, rootNote, activeNotes, scaleNotes }) => {
+export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange, chordData, scaleNotes }) => {
   const tuning = TUNINGS[tuningName];
   
   const width = 1000;
