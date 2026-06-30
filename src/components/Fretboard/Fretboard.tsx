@@ -16,25 +16,24 @@ const STRING_COUNT = 6;
 export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange, scaleRoot, scaleNotes }) => {
   const tuning = TUNINGS[tuningName];
   
-  const width = 1000;
-  const height = 220;
-  const paddingX = 40;
-  const paddingY = 30;
+  const width = 1200;
+  const height = 280;
+  const paddingX = 50;
+  const paddingY = 40;
 
   const fretPositions = useMemo(() => {
-    const positions = [];
-    const scaleLength = width - paddingX * 2;
-    const magicConstant = 17.817; 
-    let remainingLength = scaleLength;
-    let currentPos = paddingX;
-
+    // 1. Calcular posiciones relativas [0 a 1] usando la fórmula real de afinación temperada
+    const relativePositions = [];
     for (let i = 1; i <= FRET_COUNT; i++) {
-      const fretDist = remainingLength / magicConstant;
-      currentPos += fretDist;
-      positions.push(currentPos);
-      remainingLength -= fretDist;
+      const ratio = 1 - (1 / Math.pow(2, i / 12));
+      relativePositions.push(ratio);
     }
-    return positions;
+    
+    // 2. Normalizar para que el último traste ocupe exactamente todo el ancho visual disponible (sin espacios muertos)
+    const maxRatio = relativePositions[FRET_COUNT - 1];
+    const availableWidth = width - (paddingX * 2);
+    
+    return relativePositions.map(ratio => paddingX + (ratio / maxRatio) * availableWidth);
   }, [width, paddingX]);
 
   const cleanNote = (n: string) => Note.pitchClass(n);
@@ -92,7 +91,7 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
         <div className="min-w-[800px]">
           <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto drop-shadow-2xl rounded-sm">
             {/* Madera del mástil */}
-            <rect x={paddingX} y={paddingY - 10} width={fretPositions[FRET_COUNT - 1] - paddingX + 20} height={height - 2 * paddingY + 20} fill="#1e1e24" rx="4" />
+            <rect x={paddingX} y={paddingY - 10} width={width - 2 * paddingX + 20} height={height - 2 * paddingY + 20} fill="#1e1e24" rx="4" />
             
             {/* Cejilla (Nut) */}
             <rect x={paddingX - 6} y={paddingY - 10} width="6" height={height - 2 * paddingY + 20} fill="#d1d5db" />
@@ -107,12 +106,12 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
                 if (fretNum === 12) {
                   return (
                     <g key={`inlay-${fretNum}`}>
-                      <circle cx={cx} cy={height / 2 - 20} r="4" fill="#3f3f46" />
-                      <circle cx={cx} cy={height / 2 + 20} r="4" fill="#3f3f46" />
+                      <circle cx={cx} cy={height / 2 - 30} r="5" fill="#3f3f46" />
+                      <circle cx={cx} cy={height / 2 + 30} r="5" fill="#3f3f46" />
                     </g>
                   );
                 }
-                return <circle key={`inlay-${fretNum}`} cx={cx} cy={height / 2} r="4" fill="#3f3f46" />;
+                return <circle key={`inlay-${fretNum}`} cx={cx} cy={height / 2} r="5" fill="#3f3f46" />;
               }
               return null;
             })}
@@ -154,16 +153,16 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
                 if (!data.show) return null;
                 const cx = f === 0 ? paddingX / 2 : (fretPositions[f - 1] + fretPositions[f]) / 2;
                 
-                const fill = data.isRoot ? "#ef4444" : "#13131a"; // Rojo para tónica, Oscuro para el resto
-                const stroke = "#eab308"; // Siempre amarillo
+                const fill = data.isRoot ? "#ef4444" : "#13131a"; 
+                const stroke = "#eab308"; 
                 const strokeWidth = "2";
-                const textColor = data.isRoot ? "white" : "#eab308"; // Letra blanca en roja, letra amarilla en negra
-                const radius = data.isRoot ? 14 : 12; // Radio más grande para la tónica, evita usar CSS scale
+                const textColor = data.isRoot ? "white" : "#eab308"; 
+                const radius = data.isRoot ? 16 : 14; 
                 
                 return (
                   <g key={`note-${s}-${f}`} className="transition-colors duration-300">
-                    <circle cx={cx} cy={y} r={radius} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-                    <text x={cx} y={y + 4} fontSize="11" textAnchor="middle" fill={textColor} fontWeight="bold">{data.pc}</text>
+                    <circle cx={cx} cy={y} r={radius} fill={fill} stroke={stroke} strokeWidth={strokeWidth} className="drop-shadow-sm" />
+                    <text x={cx} y={y + 4.5} fontSize="13" textAnchor="middle" fill={textColor} fontWeight="bold">{data.pc}</text>
                   </g>
                 );
               });
