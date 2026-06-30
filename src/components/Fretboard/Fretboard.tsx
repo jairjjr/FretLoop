@@ -1,14 +1,13 @@
 import { useMemo } from 'react';
 import { Note, Interval } from 'tonal';
-import { TUNINGS, TuningName } from '../../core/types';
+import { TUNINGS, TuningName, ChordData } from '../../core/types';
 import { Settings2 } from 'lucide-react';
 
 interface FretboardProps {
   tuningName: TuningName;
   onTuningChange: (t: TuningName) => void;
-  rootNote: string | null;
-  activeNotes: string[]; // Chord tones (Azul)
-  scaleNotes: string[];  // Passing notes (Amarillo)
+  chordData: ChordData | null;
+  scaleNotes: string[];
 }
 
 const FRET_COUNT = 22;
@@ -38,35 +37,44 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
   }, [width, paddingX]);
 
   const cleanNote = (n: string) => Note.pitchClass(n);
-  const rootClass = rootNote ? cleanNote(rootNote) : null;
-  const activeClasses = activeNotes.map(cleanNote);
   const scaleClasses = scaleNotes.map(cleanNote);
 
   const fretboardMatrix = useMemo(() => {
-    const matrix: any[][] = [];
+    const matrix = [];
     const stringsUI = [...tuning.strings].reverse();
+    const STRING_COUNT = tuning.strings.length;
 
     for (let s = 0; s < STRING_COUNT; s++) {
       const openNote = stringsUI[s];
       const stringData = [];
+
       for (let f = 0; f <= FRET_COUNT; f++) {
         const noteName = Note.transpose(openNote, Interval.fromSemitones(f));
         const pc = cleanNote(noteName);
         
-        const isRoot = rootClass === pc;
-        const isChord = activeClasses.includes(pc);
         const isScale = scaleClasses.includes(pc);
+        let isRoot = false;
+        let isChordTone = false;
+        
+        if (chordData && isScale) {
+          const noteIndex = chordData.notes.map(cleanNote).indexOf(pc);
+          if (noteIndex !== -1) {
+            const interval = chordData.intervals[noteIndex];
+            if (interval === "1P") isRoot = true;
+            else if (interval.includes("3") || interval.includes("5")) isChordTone = true;
+          }
+        }
 
-        if (!isRoot && !isChord && !isScale) {
+        if (!isScale) {
           stringData.push({ noteName, pc, show: false });
         } else {
-          stringData.push({ noteName, pc, show: true, isRoot, isChord, isScale });
+          stringData.push({ noteName, pc, show: true, isRoot, isChord: isChordTone, isScale: true });
         }
       }
       matrix.push(stringData);
     }
     return matrix;
-  }, [tuning, rootClass, activeClasses, scaleClasses]);
+  }, [tuning, chordData, scaleClasses]);
 
   const inlays = [3, 5, 7, 9, 12, 15, 17, 19, 21];
 
@@ -121,18 +129,17 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
               if (!data.show) return null;
               const cx = f === 0 ? paddingX / 2 : (fretPositions[f - 1] + fretPositions[f]) / 2;
               
-              let fill = "#1e293b";
+              let fill = "#13131a";
               if (data.isRoot) fill = "#ef4444";
               else if (data.isChord) fill = "#3b82f6";
-              else if (data.isScale) fill = "#13131a";
               
-              const stroke = data.isScale ? "#eab308" : "none";
-              const strokeWidth = data.isScale ? "2" : "0";
-              const textColor = data.isScale && !data.isChord && !data.isRoot ? "#eab308" : "white";
+              const stroke = "#eab308"; 
+              const strokeWidth = "2";
+              const textColor = (!data.isChord && !data.isRoot) ? "#eab308" : "white";
               
               return (
                 <g key={`note-${s}-${f}`} className="transition-all duration-300">
-                  <circle cx={cx} cy={y} r="12" fill={fill} stroke={stroke} strokeWidth={strokeWidth} className={!data.isScale || data.isRoot || data.isChord ? "drop-shadow-md" : ""} />
+                  <circle cx={cx} cy={y} r="12" fill={fill} stroke={stroke} strokeWidth={strokeWidth} className={data.isRoot || data.isChord ? "drop-shadow-md scale-[1.15]" : ""} />
                   <text x={cx} y={y + 4} fontSize="11" textAnchor="middle" fill={textColor} fontWeight="bold">{data.pc}</text>
                 </g>
               );

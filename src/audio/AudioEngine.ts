@@ -13,16 +13,18 @@ export class AudioEngine {
   private static currentPart: Tone.Part | null = null;
   private static drumLoop: Tone.Loop | null = null;
 
-  // 1. Configuración perezosa en memoria (Sin pedir permisos al navegador aún)
+  private static currentNum = 4;
+  private static currentDen = 4;
+  
+  private static lastCallback: ((chordName: string | null, blockId: string) => void) | null = null;
+
   private static setupInstruments() {
     if (this.isSetup) return;
 
-    // Efectos Globales
     const reverb = new Tone.Reverb(2.5).toDestination();
     reverb.wet.value = 0.3;
     const chorus = new Tone.Chorus(4, 2.5, 0.5).connect(reverb).start();
 
-    // Pad Armónico Lujoso (FMSynth)
     this.padSynth = new Tone.PolySynth(Tone.FMSynth, {
       harmonicity: 1.5,
       modulationIndex: 2,
@@ -32,7 +34,6 @@ export class AudioEngine {
     }).connect(chorus);
     this.padSynth.volume.value = -12;
 
-    // Drum Machine: Kick (Bombo)
     this.kick = new Tone.MembraneSynth({
       pitchDecay: 0.05,
       octaves: 4,
@@ -41,14 +42,12 @@ export class AudioEngine {
     }).toDestination();
     this.kick.volume.value = -6;
 
-    // Drum Machine: Snare (Caja)
     this.snare = new Tone.NoiseSynth({
       noise: { type: "white" },
       envelope: { attack: 0.005, decay: 0.2, sustain: 0 }
     }).toDestination();
     this.snare.volume.value = -10;
 
-    // Drum Machine: HiHat (Platillo)
     this.hihat = new Tone.MetalSynth({
       envelope: { attack: 0.001, decay: 0.05, release: 0.01 },
       harmonicity: 5.1,
@@ -62,17 +61,18 @@ export class AudioEngine {
     this.isSetup = true;
   }
 
-  // 2. Arranque oficial (Requiere Clic del Usuario para no ser bloqueado)
   public static async startAudioContext() {
-    this.setupInstruments(); // Construye en memoria si no existen
+    this.setupInstruments();
     if (!this.isStarted) {
-      await Tone.start(); // Esto es instantáneo si ya hubo interacción
+      await Tone.start();
       this.isStarted = true;
     }
   }
 
   public static setTimeSignature(ts: TimeSignature) {
     const [num, den] = ts.split('/').map(Number);
+    this.currentNum = num;
+    this.currentDen = den;
     Tone.Transport.timeSignature = [num, den];
   }
 
@@ -80,41 +80,14 @@ export class AudioEngine {
     Tone.Transport.bpm.value = bpm;
   }
 
-  public static async playSequence(blocks: TimeBlock[], onChordChange: (chordName: string | null, blockId: string) => void) {
-    // Activamos AudioContext AQUÍ, de forma segura, respondiendo al clic
-    await this.startAudioContext();
-    if (!this.padSynth || !this.kick || !this.snare || !this.hihat) return;
-
-    this.stop();
-
-    const ticksPerBeat = Tone.Time("4n").toTicks();
+  // Se llama dinámicamente si los bloques cambian mientras se reproduce
+  public static updateSequence(blocks: TimeBlock[]) {
+    if (!this.currentPart || !this.lastCallback) return;
     
-    // Configurar patrón de batería básico (Rock/Pop clásico 4/4)
-    // Tocaremos usando un Loop que se alinea a corcheas (8n)
-    let eighthNoteCount = 0;
-    this.drumLoop = new Tone.Loop((time) => {
-      // 0, 1, 2, 3, 4, 5, 6, 7 (8 corcheas = 1 compás de 4/4)
-      const isDownbeat = eighthNoteCount % 8 === 0; // Tiempo 1
-      const isBackbeat = eighthNoteCount % 8 === 4; // Tiempo 3 (caja fuerte)
-      const isKickSub = eighthNoteCount % 8 === 5; // Bombo adelantado opcional
-      
-      // Hihat toca en casi todas las corcheas
-      if (eighthNoteCount % 2 === 0 || eighthNoteCount % 8 === 3) {
-        this.hihat?.triggerAttackRelease("32n", time, 0.3);
-      }
-
-      if (isDownbeat || isKickSub) {
-        this.kick?.triggerAttackRelease("C1", "8n", time, isDownbeat ? 1 : 0.6);
-      }
-      
-      if (isBackbeat) {
-        this.snare?.triggerAttackRelease("16n", time, 1);
-      }
-      
-      eighthNoteCount++;
-    }, "8n").start(0);
-
-    // Eventos de Acordes
+    // Matar la partitura antigua, pero dejar el Transport y la batería corriendo
+    this.currentPart.dispose();
+    
+    const ticksPerBeat = Tone.Time("4n").toTicks();
     const events: any[] = [];
     let currentTicks = 0;
 
@@ -133,25 +106,64 @@ export class AudioEngine {
 
     this.currentPart = new Tone.Part((time, value) => {
       if (value.chord) {
-        // Voicing abierto para un Pad lujoso
         const notesToPlay = value.chord.notes.map((n: string) => n + "4");
-        // Añadimos el bajo muy grave para dar profundidad
         notesToPlay.push(value.chord.root + "2");
         notesToPlay.push(value.chord.root + "3");
-        
         this.padSynth?.triggerAttackRelease(notesToPlay, value.duration, time);
       }
-      
       Tone.Draw.schedule(() => {
-        onChordChange(value.chord ? value.chord.name : null, value.blockId);
+        if (this.lastCallback) this.lastCallback(value.chord ? value.chord.name : null, value.blockId);
       }, time);
-
     }, events).start(0);
 
     this.currentPart.loop = true;
     this.currentPart.loopEnd = totalLoopTicks + "i";
+  }
 
-    // Iniciamos con una pequeñísima latencia para darle tiempo al scheduler y evitar tirones
+  public static async playSequence(blocks: TimeBlock[], onChordChange: (chordName: string | null, blockId: string) => void) {
+    await this.startAudioContext();
+    if (!this.padSynth || !this.kick || !this.snare || !this.hihat) return;
+
+    this.stop();
+    this.lastCallback = onChordChange;
+
+    const ticksPerBeat = Tone.Time("4n").toTicks();
+    let eighthNoteCount = 0;
+    
+    this.drumLoop = new Tone.Loop((time) => {
+      const eighthsPerMeasure = this.currentDen === 4 ? this.currentNum * 2 : this.currentNum;
+      const step = eighthNoteCount % eighthsPerMeasure;
+      const isDownbeat = step === 0;
+      
+      // Inteligencia rítmica adaptada al compás (Time Signature)
+      let isBackbeat = false;
+      if (this.currentNum === 4 && this.currentDen === 4) isBackbeat = (step === 4);
+      else if (this.currentNum === 3 && this.currentDen === 4) isBackbeat = (step === 2 || step === 4); // Vals moderno
+      else if (this.currentNum === 5 && this.currentDen === 4) isBackbeat = (step === 4 || step === 8); // Polirritmia 5/4
+      else if (this.currentNum === 6 && this.currentDen === 8) isBackbeat = (step === 3); // 6/8
+      else isBackbeat = (step === Math.floor(eighthsPerMeasure / 2));
+
+      // Groove
+      if (eighthNoteCount % 2 === 0 || step === eighthsPerMeasure - 1) {
+        this.hihat?.triggerAttackRelease("32n", time, 0.3);
+      }
+
+      // El bombo apoya la tónica
+      if (isDownbeat || step === eighthsPerMeasure - 3) {
+        this.kick?.triggerAttackRelease("C1", "8n", time, isDownbeat ? 1 : 0.6);
+      }
+      
+      if (isBackbeat) {
+        this.snare?.triggerAttackRelease("16n", time, 1);
+      }
+      
+      eighthNoteCount++;
+    }, "8n").start(0);
+
+    // Reutilizamos la lógica de inyección de bloques
+    this.currentPart = new Tone.Part(() => {}, []).start(0); 
+    this.updateSequence(blocks);
+
     Tone.Transport.start("+0.1");
   }
 
@@ -165,6 +177,7 @@ export class AudioEngine {
       this.drumLoop.dispose();
       this.drumLoop = null;
     }
+    this.lastCallback = null;
     Tone.Transport.position = 0;
   }
 }

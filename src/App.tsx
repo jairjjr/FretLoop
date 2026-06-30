@@ -40,6 +40,13 @@ function App() {
   // Acorde sonando en este momento exacto
   const currentChordData = currentChordName ? TheoryEngine.parseChord(currentChordName) : null;
 
+  // Actualización dinámica: Si el usuario cambia los bloques mientras suena, actualiza la partitura
+  useEffect(() => {
+    if (isPlaying) {
+      AudioEngine.updateSequence(blocks);
+    }
+  }, [blocks, isPlaying]);
+
   // Sincronización con el motor de audio
   useEffect(() => {
     AudioEngine.setBpm(bpm);
@@ -120,8 +127,7 @@ function App() {
         <Fretboard 
           tuningName={tuningName}
           onTuningChange={setTuningName}
-          rootNote={currentChordData ? currentChordData.root : null}
-          activeNotes={currentChordData ? currentChordData.notes : []}
+          chordData={currentChordData}
           scaleNotes={selectedScale ? selectedScale.notes : []}
         />
 

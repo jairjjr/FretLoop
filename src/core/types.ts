@@ -9,6 +9,7 @@ export interface ChordData {
   type: string;
   name: string;
   notes: string[];
+  intervals: string[];
 }
 
 export interface TimeBlock {

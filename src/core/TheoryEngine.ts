@@ -11,6 +11,7 @@ export class TheoryEngine {
       type: chordInfo.type,
       name: chordInfo.name,
       notes: chordInfo.notes,
+      intervals: chordInfo.intervals,
     };
   }
 
@@ -36,28 +37,42 @@ export class TheoryEngine {
       
       lesson = {
         tonalCenter: globalKey,
-        explanation: `Analizando toda la secuencia, tu "Centro Tonal" (el hogar de la canción) es ${primaryChord.root} Mayor. Puedes usar la escala mayor completa para un sonido heroico o feliz, pero el atajo mental clásico del Rock y Soul es pensar en la pentatónica de su relativa menor (${relativeMinorRoot}m).`,
+        explanation: `Tu centro tonal es ${primaryChord.root} Mayor. Para expandir tu vocabulario horizontal y romper la clásica "caja" vertical, visualiza la carretera de notas a lo largo de una sola cuerda en lugar de cruzar seis. Conecta la Tónica, la 3ra y la 5ta deslizando (slides) el dedo índice o anular por el mástil. Al cambiar el acorde, las notas en rojo (Raíz) y azul (3ra y 5ta) te indicarán exactamente dónde puedes "descansar" (resolver) tu fraseo con total seguridad.`,
         scaleSuggestions: [
           {
             id: 'major-penta',
-            name: `Penta ${primaryChord.root} Mayor`,
+            name: `Penta Mayor (${primaryChord.root})`,
             scaleName: `${primaryChord.root} major pentatonic`,
             notes: Scale.get(`${primaryChord.root} major pentatonic`).notes,
-            description: "Sonido clásico, alegre y muy seguro."
+            description: "Clásica y segura. Toca horizontalmente uniendo 2 cajas vecinas."
           },
           {
             id: 'relative-minor-penta',
-            name: `Penta ${relativeMinorRoot} Menor (Atajo)`,
+            name: `Penta Relativa (${relativeMinorRoot}m)`,
             scaleName: `${relativeMinorRoot} minor pentatonic`,
             notes: Scale.get(`${relativeMinorRoot} minor pentatonic`).notes,
-            description: "Mismas notas que la mayor, pero con una forma visual más rock/blues."
+            description: "Atajo mental rockero. Desliza sobre las cuerdas agudas."
           },
           {
             id: 'major-scale',
-            name: `Escala ${primaryChord.root} Mayor (Jónica)`,
+            name: `Escala Mayor (Jónica)`,
             scaleName: `${primaryChord.root} major`,
             notes: Scale.get(`${primaryChord.root} major`).notes,
-            description: "Escala completa con 7 notas. Perfecta para melodías ricas."
+            description: "Las 7 notas. Usa los semitonos como puentes de paso rápidos."
+          },
+          {
+            id: 'mixolydian-mode',
+            name: `Modo Mixolidio (Disruptiva)`,
+            scaleName: `${primaryChord.root} mixolydian`,
+            notes: Scale.get(`${primaryChord.root} mixolydian`).notes,
+            description: "Sonido Blues/Funk. Tiene la 7ma menor. Úsala para un groove más sucio."
+          },
+          {
+            id: 'lydian-mode',
+            name: `Modo Lidio (Disruptiva)`,
+            scaleName: `${primaryChord.root} lydian`,
+            notes: Scale.get(`${primaryChord.root} lydian`).notes,
+            description: "Sonido onírico/Jazz. Tiene la 4ta aumentada. Muy mística y flotante."
           }
         ]
       };
@@ -67,28 +82,42 @@ export class TheoryEngine {
 
       lesson = {
         tonalCenter: globalKey,
-        explanation: `Estás navegando en una tonalidad Menor (${primaryChord.root}m). La pentatónica menor es tu territorio seguro e infalible. Si quieres darle un giro más brillante a tu solo, piensa en su relativa mayor (${relativeMajorRoot}).`,
+        explanation: `Tu centro es ${primaryChord.root} Menor. No te quedes atrapado en la posición 1 de la pentatónica. Oblígate a tocar un solo usando únicamente las cuerdas Sol (G) y Si (B), moviéndote horizontalmente por los trastes. Fíjate en los puntos rojos y azules: son las notas fuertes del acorde que suena en este instante. Terminar una línea melódica en una nota azul (la tercera del acorde) justo en el tiempo fuerte del compás te dará un sonido inmensamente profesional.`,
         scaleSuggestions: [
           {
             id: 'minor-penta',
-            name: `Penta ${primaryChord.root} Menor`,
+            name: `Penta Menor (${primaryChord.root}m)`,
             scaleName: `${primaryChord.root} minor pentatonic`,
             notes: Scale.get(`${primaryChord.root} minor pentatonic`).notes,
-            description: "Tu zona de confort clásica. Triste, rockera o bluesera."
-          },
-          {
-            id: 'minor-scale',
-            name: `Escala ${primaryChord.root} Menor Natural`,
-            scaleName: `${primaryChord.root} minor`,
-            notes: Scale.get(`${primaryChord.root} minor`).notes,
-            description: "Escala completa con 7 notas. Ideal para pasajes épicos o melancólicos."
+            description: "Tu base de Blues/Rock. Rompe la caja haciendo slides entre posiciones."
           },
           {
             id: 'relative-major-penta',
-            name: `Penta ${relativeMajorRoot} Mayor (Atajo)`,
+            name: `Penta Relativa (${relativeMajorRoot})`,
             scaleName: `${relativeMajorRoot} major pentatonic`,
             notes: Scale.get(`${relativeMajorRoot} major pentatonic`).notes,
-            description: "Un respiro alegre. Mismas notas, distinto enfoque en el diapasón."
+            description: "Mismas notas, distinto enfoque. Piensa en melodías alegres sobre fondo oscuro."
+          },
+          {
+            id: 'minor-scale',
+            name: `Menor Natural (Eólica)`,
+            scaleName: `${primaryChord.root} minor`,
+            notes: Scale.get(`${primaryChord.root} minor`).notes,
+            description: "Escala completa. Esas dos notas extra te permiten hacer melodías dramáticas."
+          },
+          {
+            id: 'dorian-mode',
+            name: `Modo Dórico (Disruptiva)`,
+            scaleName: `${primaryChord.root} dorian`,
+            notes: Scale.get(`${primaryChord.root} dorian`).notes,
+            description: "Sabor Jazz/Funk oscuro. Sube la 6ta. Perfecto para grooves largos."
+          },
+          {
+            id: 'phrygian-mode',
+            name: `Modo Frigio (Disruptiva)`,
+            scaleName: `${primaryChord.root} phrygian`,
+            notes: Scale.get(`${primaryChord.root} phrygian`).notes,
+            description: "Metal oscuro o Flamenco. Baja la 2da. Muy tensa y agresiva."
           }
         ]
       };
