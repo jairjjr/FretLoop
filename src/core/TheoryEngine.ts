@@ -73,6 +73,13 @@ export class TheoryEngine {
             scaleName: `${primaryChord.root} lydian`,
             notes: Scale.get(`${primaryChord.root} lydian`).notes,
             description: "Sonido onírico/Jazz. Tiene la 4ta aumentada. Muy mística y flotante."
+          },
+          {
+            id: 'major-blues',
+            name: `Blues Mayor (Country/Rock)`,
+            scaleName: `${primaryChord.root} major blues`,
+            notes: Scale.get(`${primaryChord.root} major blues`).notes,
+            description: "Añade la \"Blue note\" (b3) a la penta mayor. El secreto del country y el rock sureño."
           }
         ]
       };
@@ -118,6 +125,13 @@ export class TheoryEngine {
             scaleName: `${primaryChord.root} phrygian`,
             notes: Scale.get(`${primaryChord.root} phrygian`).notes,
             description: "Metal oscuro o Flamenco. Baja la 2da. Muy tensa y agresiva."
+          },
+          {
+            id: 'minor-blues',
+            name: `Blues Menor (Rock/Metal)`,
+            scaleName: `${primaryChord.root} minor blues`,
+            notes: Scale.get(`${primaryChord.root} minor blues`).notes,
+            description: "Añade la nota \"Blue\" (b5) a la pentatónica. Tensión sucia ideal para rock clásico."
           }
         ]
       };

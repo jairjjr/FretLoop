@@ -80,11 +80,22 @@ export const Sequencer: React.FC<SequencerProps> = ({
           <div className="flex items-center gap-3 min-w-[150px]">
             <Activity size={16} className="text-gray-400" />
             <input 
-              type="range" min="60" max="200" value={bpm} 
-              onChange={e => onBpmChange(Number(e.target.value))}
-              className="accent-primary-main w-24 cursor-pointer"
+              type="range" 
+              min="60" max="200" 
+              value={bpm}
+              onChange={(e) => onBpmChange(Number(e.target.value))}
+              className="w-24 accent-primary-main"
             />
-            <span className="text-sm font-bold w-12 text-right">{bpm} BPM</span>
+            <div className="flex flex-col items-end justify-center">
+              <input 
+                type="number"
+                min="60" max="200"
+                value={bpm}
+                onChange={(e) => onBpmChange(Number(e.target.value))}
+                className="w-14 bg-dark-800 text-white text-sm font-bold text-center rounded border border-white/10 px-1 py-0.5 focus:outline-none focus:border-primary-main"
+              />
+              <span className="text-[10px] text-gray-400 font-normal mt-0.5">BPM</span>
+            </div>
           </div>
         </div>
 
