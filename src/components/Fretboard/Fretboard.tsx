@@ -1,48 +1,49 @@
 import { useMemo } from 'react';
 import { Note, Interval } from 'tonal';
-import { TUNINGS, TuningName, ChordData } from '../../core/types';
+import { TUNINGS, TuningName } from '../../core/types';
 import { Settings2 } from 'lucide-react';
 
 interface FretboardProps {
   tuningName: TuningName;
   onTuningChange: (t: TuningName) => void;
-  chordData: ChordData | null;
+  scaleRoot: string | null;
   scaleNotes: string[];
 }
 
 const FRET_COUNT = 22;
 const STRING_COUNT = 6;
 
-export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange, chordData, scaleNotes }) => {
+export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange, scaleRoot, scaleNotes }) => {
   const tuning = TUNINGS[tuningName];
   
   const width = 1000;
-  const height = 240;
+  const height = 220;
   const paddingX = 40;
   const paddingY = 30;
-  const stringSpacing = (height - 2 * paddingY) / (STRING_COUNT - 1);
-  
+
   const fretPositions = useMemo(() => {
-    const scaleLength = 1000; 
-    const positions = [0];
-    let currentPos = 0;
+    const positions = [];
+    const scaleLength = width - paddingX * 2;
+    const magicConstant = 17.817; 
+    let remainingLength = scaleLength;
+    let currentPos = paddingX;
+
     for (let i = 1; i <= FRET_COUNT; i++) {
-      const dist = (scaleLength - currentPos) / 17.817;
-      currentPos += dist;
+      const fretDist = remainingLength / magicConstant;
+      currentPos += fretDist;
       positions.push(currentPos);
+      remainingLength -= fretDist;
     }
-    const maxPos = positions[FRET_COUNT];
-    const widthDisponible = width - 2 * paddingX;
-    return positions.map(p => paddingX + (p / maxPos) * widthDisponible);
+    return positions;
   }, [width, paddingX]);
 
   const cleanNote = (n: string) => Note.pitchClass(n);
   const scaleClasses = scaleNotes.map(cleanNote);
+  const rootClass = scaleRoot ? cleanNote(scaleRoot) : null;
 
   const fretboardMatrix = useMemo(() => {
     const matrix = [];
     const stringsUI = [...tuning.strings].reverse();
-    const STRING_COUNT = tuning.strings.length;
 
     for (let s = 0; s < STRING_COUNT; s++) {
       const openNote = stringsUI[s];
@@ -53,99 +54,122 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
         const pc = cleanNote(noteName);
         
         const isScale = scaleClasses.includes(pc);
-        let isRoot = false;
-        let isChordTone = false;
-        
-        if (chordData && isScale) {
-          const noteIndex = chordData.notes.map(cleanNote).indexOf(pc);
-          if (noteIndex !== -1) {
-            const interval = chordData.intervals[noteIndex];
-            if (interval === "1P") isRoot = true;
-            else if (interval.includes("3") || interval.includes("5")) isChordTone = true;
-          }
-        }
+        const isRoot = rootClass === pc;
 
         if (!isScale) {
           stringData.push({ noteName, pc, show: false });
         } else {
-          stringData.push({ noteName, pc, show: true, isRoot, isChord: isChordTone, isScale: true });
+          stringData.push({ noteName, pc, show: true, isRoot, isScale: true });
         }
       }
       matrix.push(stringData);
     }
     return matrix;
-  }, [tuning, chordData, scaleClasses]);
+  }, [tuning, rootClass, scaleClasses]);
 
   const inlays = [3, 5, 7, 9, 12, 15, 17, 19, 21];
 
   return (
-    <div className="w-full flex flex-col gap-4 mt-8">
-      {/* Selector de Afinación Pegado al Diapasón */}
-      <div className="flex justify-between items-center bg-dark-900/40 p-4 rounded-t-2xl border border-white/5 border-b-0 backdrop-blur-md">
-        <h3 className="text-xl font-bold text-white/90 flex items-center gap-2">
-           Diapasón Interactivo
-        </h3>
+    <div className="w-full bg-dark-800/80 p-4 rounded-xl border border-white/5 shadow-inner">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <Settings2 size={20} className="text-primary-main" />
+          Fretboard Estático
+        </h2>
         
-        <div className="flex items-center gap-3 bg-dark-800/80 px-4 py-2 rounded-lg border border-white/5 shadow-inner">
-          <Settings2 size={16} className="text-gray-400" />
-          <div className="flex flex-col">
-            <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Afinación</label>
-            <select 
-              value={tuningName} 
-              onChange={e => onTuningChange(e.target.value as TuningName)}
-              className="bg-transparent text-sm text-white font-bold outline-none cursor-pointer"
-            >
-              {Object.keys(TUNINGS).map(t => <option key={t} value={t} className="bg-dark-800">{t}</option>)}
-            </select>
-          </div>
-        </div>
+        <select 
+          value={tuningName}
+          onChange={(e) => onTuningChange(e.target.value as TuningName)}
+          className="bg-dark-900 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-gray-300 focus:outline-none focus:border-primary-main"
+        >
+          {Object.keys(TUNINGS).map(t => (
+            <option key={t} value={t}>{t} ({TUNINGS[t as TuningName].name})</option>
+          ))}
+        </select>
       </div>
 
-      {/* SVG del Mástil */}
-      <div className="w-full overflow-x-auto glass-panel p-4 -mt-4 rounded-tl-none border-t border-white/10 shadow-2xl">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[800px] h-auto drop-shadow-2xl">
-          <rect x={paddingX} y={paddingY} width={width - 2 * paddingX} height={height - 2 * paddingY} fill="#1c1c26" rx="5" />
-          
-          {fretPositions.map((pos, i) => (
-            <g key={`fret-${i}`}>
-              {i > 0 && <line x1={pos} y1={paddingY} x2={pos} y2={height - paddingY} stroke="#cbd5e1" strokeWidth="2" opacity="0.6" />}
-              {inlays.includes(i) && (
-                <circle cx={(fretPositions[i - 1] + pos) / 2} cy={i === 12 ? height / 2 - stringSpacing : height / 2} r="6" fill="#475569" opacity="0.5" />
-              )}
-              {i === 12 && (
-                 <circle cx={(fretPositions[i - 1] + pos) / 2} cy={height / 2 + stringSpacing} r="6" fill="#475569" opacity="0.5" />
-              )}
-            </g>
-          ))}
-          <line x1={paddingX} y1={paddingY} x2={paddingX} y2={height - paddingY} stroke="#f8fafc" strokeWidth="6" />
+      <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
+        <div className="min-w-[800px]">
+          <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto drop-shadow-2xl rounded-sm">
+            {/* Madera del mástil */}
+            <rect x={paddingX} y={paddingY - 10} width={fretPositions[FRET_COUNT - 1] - paddingX + 20} height={height - 2 * paddingY + 20} fill="#1e1e24" rx="4" />
+            
+            {/* Cejilla (Nut) */}
+            <rect x={paddingX - 6} y={paddingY - 10} width="6" height={height - 2 * paddingY + 20} fill="#d1d5db" />
 
-          {fretboardMatrix.map((_, s) => (
-            <line key={`string-${s}`} x1={0} y1={paddingY + s * stringSpacing} x2={width} y2={paddingY + s * stringSpacing} stroke="#94a3b8" strokeWidth={1 + (s * 0.4)} opacity="0.8" />
-          ))}
+            {/* Inlays (Puntos) */}
+            {fretPositions.map((pos, i) => {
+              const fretNum = i + 1;
+              if (inlays.includes(fretNum)) {
+                const prevPos = i === 0 ? paddingX : fretPositions[i - 1];
+                const cx = (prevPos + pos) / 2;
+                
+                if (fretNum === 12) {
+                  return (
+                    <g key={`inlay-${fretNum}`}>
+                      <circle cx={cx} cy={height / 2 - 20} r="4" fill="#3f3f46" />
+                      <circle cx={cx} cy={height / 2 + 20} r="4" fill="#3f3f46" />
+                    </g>
+                  );
+                }
+                return <circle key={`inlay-${fretNum}`} cx={cx} cy={height / 2} r="4" fill="#3f3f46" />;
+              }
+              return null;
+            })}
 
-          {fretboardMatrix.map((stringData, s) => {
-            const y = paddingY + s * stringSpacing;
-            return stringData.map((data, f) => {
-              if (!data.show) return null;
-              const cx = f === 0 ? paddingX / 2 : (fretPositions[f - 1] + fretPositions[f]) / 2;
-              
-              let fill = "#13131a";
-              if (data.isRoot) fill = "#ef4444";
-              else if (data.isChord) fill = "#3b82f6";
-              
-              const stroke = "#eab308"; 
-              const strokeWidth = "2";
-              const textColor = (!data.isChord && !data.isRoot) ? "#eab308" : "white";
-              
+            {/* Trastes */}
+            {fretPositions.map((pos, i) => (
+              <line 
+                key={`fret-${i}`}
+                x1={pos} y1={paddingY - 10} 
+                x2={pos} y2={height - paddingY + 10} 
+                stroke="#52525b" strokeWidth="2" 
+              />
+            ))}
+
+            {/* Cuerdas */}
+            {Array.from({ length: STRING_COUNT }).map((_, i) => {
+              const stringSpacing = (height - 2 * paddingY) / (STRING_COUNT - 1);
+              const y = paddingY + i * stringSpacing;
+              // Las cuerdas graves (abajo visualmente, índices mayores) son más gruesas
+              const thickness = 1 + (i * 0.5); 
               return (
-                <g key={`note-${s}-${f}`} className="transition-all duration-300">
-                  <circle cx={cx} cy={y} r="12" fill={fill} stroke={stroke} strokeWidth={strokeWidth} className={data.isRoot || data.isChord ? "drop-shadow-md scale-[1.15]" : ""} />
-                  <text x={cx} y={y + 4} fontSize="11" textAnchor="middle" fill={textColor} fontWeight="bold">{data.pc}</text>
-                </g>
+                <line 
+                  key={`string-${i}`}
+                  x1={0} y1={y} 
+                  x2={width} y2={y} 
+                  stroke="#a1a1aa" 
+                  strokeWidth={thickness}
+                  opacity="0.7"
+                />
               );
-            });
-          })}
-        </svg>
+            })}
+
+            {/* Notas */}
+            {fretboardMatrix.map((stringData, s) => {
+              const stringSpacing = (height - 2 * paddingY) / (STRING_COUNT - 1);
+              const y = paddingY + s * stringSpacing;
+
+              return stringData.map((data, f) => {
+                if (!data.show) return null;
+                const cx = f === 0 ? paddingX / 2 : (fretPositions[f - 1] + fretPositions[f]) / 2;
+                
+                const fill = data.isRoot ? "#ef4444" : "#13131a"; // Rojo para tónica, Oscuro para el resto
+                const stroke = "#eab308"; // Siempre amarillo
+                const strokeWidth = "2";
+                const textColor = data.isRoot ? "white" : "#eab308"; // Letra blanca en roja, letra amarilla en negra
+                const radius = data.isRoot ? 14 : 12; // Radio más grande para la tónica, evita usar CSS scale
+                
+                return (
+                  <g key={`note-${s}-${f}`} className="transition-colors duration-300">
+                    <circle cx={cx} cy={y} r={radius} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+                    <text x={cx} y={y + 4} fontSize="11" textAnchor="middle" fill={textColor} fontWeight="bold">{data.pc}</text>
+                  </g>
+                );
+              });
+            })}
+          </svg>
+        </div>
       </div>
     </div>
   );

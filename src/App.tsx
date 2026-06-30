@@ -127,7 +127,7 @@ function App() {
         <Fretboard 
           tuningName={tuningName}
           onTuningChange={setTuningName}
-          chordData={currentChordData}
+          scaleRoot={selectedScale ? selectedScale.scaleName.split(" ")[0] : null}
           scaleNotes={selectedScale ? selectedScale.notes : []}
         />
 
