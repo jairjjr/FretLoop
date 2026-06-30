@@ -144,44 +144,43 @@ export const Sequencer: React.FC<SequencerProps> = ({
 
       <div className="p-6 flex flex-col gap-6">
         {/* Controles de Ingreso (Botones) */}
-        <div className="bg-dark-800/80 p-5 rounded-xl border border-white/5 flex flex-wrap items-center justify-center lg:justify-between gap-6 shadow-inner">
+        <div className="bg-dark-800/80 p-5 rounded-xl border border-white/5 flex flex-wrap items-center justify-center gap-x-6 gap-y-5 shadow-inner">
           
-          {/* Grupo 1: Tono (Raíz + Alteración) */}
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <div className="flex flex-wrap gap-2 justify-center">
-              {ROOTS.map(root => (
-                <button 
-                  key={root}
-                  onClick={() => setSelectedRoot(root)}
-                  className={`w-11 h-11 rounded-full font-bold text-lg transition-all active:scale-95
-                    ${selectedRoot === root ? 'bg-primary-main text-white drop-shadow-[0_0_10px_rgba(99,102,241,0.6)] scale-110' : 'bg-dark-700 text-gray-400 hover:bg-dark-700/80 hover:text-white'}`}
-                >
-                  {root}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-1 justify-center bg-dark-900 p-1.5 rounded-xl border border-white/5">
-              {[{ label: "♮", val: "" }, { label: "#", val: "#" }, { label: "b", val: "b" }].map(acc => (
-                <button 
-                  key={acc.label}
-                  onClick={() => setSelectedAccidental(acc.val)}
-                  className={`w-10 h-10 rounded-lg font-bold text-lg transition-all active:scale-95
-                    ${selectedAccidental === acc.val ? 'bg-primary-main text-white shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
-                >
-                  {acc.label}
-                </button>
-              ))}
-            </div>
+          {/* 1. Raíz */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            {ROOTS.map(root => (
+              <button 
+                key={root}
+                onClick={() => setSelectedRoot(root)}
+                className={`w-11 h-11 rounded-full font-bold text-lg transition-all active:scale-95
+                  ${selectedRoot === root ? 'bg-primary-main text-white drop-shadow-[0_0_10px_rgba(99,102,241,0.6)] scale-110' : 'bg-dark-700 text-gray-400 hover:bg-dark-700/80 hover:text-white'}`}
+              >
+                {root}
+              </button>
+            ))}
           </div>
 
-          {/* Grupo 2: Calidad / Tipo */}
+          {/* 2. Alteración */}
+          <div className="flex flex-wrap gap-1 justify-center bg-dark-900 p-1.5 rounded-xl border border-white/5">
+            {[{ label: "♮", val: "" }, { label: "#", val: "#" }, { label: "b", val: "b" }].map(acc => (
+              <button 
+                key={acc.label}
+                onClick={() => setSelectedAccidental(acc.val)}
+                className={`w-10 h-10 rounded-lg font-bold text-lg transition-all active:scale-95
+                  ${selectedAccidental === acc.val ? 'bg-primary-main text-white shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+              >
+                {acc.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 3. Calidad / Tipo */}
           <div className="flex flex-wrap gap-2 justify-center">
             {TYPES.map(type => (
               <button 
                 key={type.val}
                 onClick={() => setSelectedType(type.val)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95
+                className={`px-4 py-3 rounded-lg text-sm font-semibold transition-all active:scale-95
                   ${selectedType === type.val ? 'bg-accent-blue text-white shadow-lg shadow-blue-500/30' : 'bg-dark-700 text-gray-400 hover:bg-dark-700/80 hover:text-white'}`}
               >
                 {type.label}
@@ -189,31 +188,30 @@ export const Sequencer: React.FC<SequencerProps> = ({
             ))}
           </div>
 
-          {/* Grupo 3: Duración e Inserción */}
-          <div className="flex flex-wrap items-center justify-center gap-4 lg:ml-auto w-full lg:w-auto">
-            <div className="flex gap-1 bg-dark-900 p-1.5 rounded-xl border border-white/5">
-              {[1, 2, 3, 4].map(num => (
-                <button
-                  key={num}
-                  onClick={() => setSelectedBars(num)}
-                  className={`w-12 h-10 rounded-lg font-bold text-sm transition-all active:scale-95
-                    ${selectedBars === num 
-                      ? 'bg-accent-blue text-white shadow-lg shadow-blue-500/20' 
-                      : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
-                  title={`${num} Compás${num > 1 ? 'es' : ''}`}
-                >
-                  x{num}
-                </button>
-              ))}
-            </div>
-
-            <button 
-              onClick={handleAdd}
-              className="flex-1 lg:flex-none bg-dark-700 hover:bg-white/10 text-white px-5 py-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 border border-white/10 font-bold"
-            >
-              <Plus size={20} /> Insertar al Loop
-            </button>
+          {/* 4. Duración */}
+          <div className="flex gap-1 bg-dark-900 p-1.5 rounded-xl border border-white/5">
+            {[1, 2, 3, 4].map(num => (
+              <button
+                key={num}
+                onClick={() => setSelectedBars(num)}
+                className={`w-12 h-10 rounded-lg font-bold text-sm transition-all active:scale-95
+                  ${selectedBars === num 
+                    ? 'bg-accent-blue text-white shadow-lg shadow-blue-500/20' 
+                    : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                title={`${num} Compás${num > 1 ? 'es' : ''}`}
+              >
+                x{num}
+              </button>
+            ))}
           </div>
+
+          {/* 5. Inserción */}
+          <button 
+            onClick={handleAdd}
+            className="flex-1 sm:flex-none bg-dark-700 hover:bg-white/10 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 border border-white/10 font-bold"
+          >
+            <Plus size={20} /> Insertar al Loop
+          </button>
         </div>
 
         {/* Timeline Visual */}
