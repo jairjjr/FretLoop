@@ -8,12 +8,13 @@ interface FretboardProps {
   onTuningChange: (t: TuningName) => void;
   scaleRoot: string | null;
   scaleNotes: string[];
+  scaleIntervals: string[];
 }
 
 const FRET_COUNT = 22;
 const STRING_COUNT = 6;
 
-export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange, scaleRoot, scaleNotes }) => {
+export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange, scaleRoot, scaleNotes, scaleIntervals }) => {
   const tuning = TUNINGS[tuningName];
   
   const width = 1200;
@@ -23,14 +24,15 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
 
   const fretPositions = useMemo(() => {
     // 1. Calcular posiciones relativas [0 a 1] usando la fórmula real de afinación temperada
-    const relativePositions = [];
+    // Incluimos el traste 0 (Cejilla)
+    const relativePositions = [0]; 
     for (let i = 1; i <= FRET_COUNT; i++) {
       const ratio = 1 - (1 / Math.pow(2, i / 12));
       relativePositions.push(ratio);
     }
     
-    // 2. Normalizar para que el último traste ocupe exactamente todo el ancho visual disponible (sin espacios muertos)
-    const maxRatio = relativePositions[FRET_COUNT - 1];
+    // 2. Normalizar para que el último traste (índice FRET_COUNT) ocupe exactamente todo el ancho visual
+    const maxRatio = relativePositions[FRET_COUNT];
     const availableWidth = width - (paddingX * 2);
     
     return relativePositions.map(ratio => paddingX + (ratio / maxRatio) * availableWidth);
@@ -52,19 +54,28 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
         const noteName = Note.transpose(openNote, Interval.fromSemitones(f));
         const pc = cleanNote(noteName);
         
-        const isScale = scaleClasses.includes(pc);
+        const noteIndexInScale = scaleClasses.indexOf(pc);
+        const isScale = noteIndexInScale !== -1;
         const isRoot = rootClass === pc;
+        let isFifth = false;
+
+        if (isScale && scaleIntervals && scaleIntervals.length > 0) {
+          const interval = scaleIntervals[noteIndexInScale];
+          if (interval === "5P" || interval === "5d" || interval === "5A") {
+            isFifth = true;
+          }
+        }
 
         if (!isScale) {
           stringData.push({ noteName, pc, show: false });
         } else {
-          stringData.push({ noteName, pc, show: true, isRoot, isScale: true });
+          stringData.push({ noteName, pc, show: true, isRoot, isFifth, isScale: true });
         }
       }
       matrix.push(stringData);
     }
     return matrix;
-  }, [tuning, rootClass, scaleClasses]);
+  }, [tuning, rootClass, scaleClasses, scaleIntervals]);
 
   const inlays = [3, 5, 7, 9, 12, 15, 17, 19, 21];
 
@@ -98,9 +109,10 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
 
             {/* Inlays (Puntos) */}
             {fretPositions.map((pos, i) => {
-              const fretNum = i + 1;
+              if (i === 0) return null; // La cejilla no tiene inlay
+              const fretNum = i;
               if (inlays.includes(fretNum)) {
-                const prevPos = i === 0 ? paddingX : fretPositions[i - 1];
+                const prevPos = fretPositions[i - 1];
                 const cx = (prevPos + pos) / 2;
                 
                 if (fretNum === 12) {
@@ -117,20 +129,22 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
             })}
 
             {/* Trastes */}
-            {fretPositions.map((pos, i) => (
-              <line 
-                key={`fret-${i}`}
-                x1={pos} y1={paddingY - 10} 
-                x2={pos} y2={height - paddingY + 10} 
-                stroke="#52525b" strokeWidth="2" 
-              />
-            ))}
+            {fretPositions.map((pos, i) => {
+              if (i === 0) return null; // No dibujamos traste en la cejilla (ya tiene su rect)
+              return (
+                <line 
+                  key={`fret-${i}`}
+                  x1={pos} y1={paddingY - 10} 
+                  x2={pos} y2={height - paddingY + 10} 
+                  stroke="#52525b" strokeWidth="2" 
+                />
+              );
+            })}
 
             {/* Cuerdas */}
             {Array.from({ length: STRING_COUNT }).map((_, i) => {
               const stringSpacing = (height - 2 * paddingY) / (STRING_COUNT - 1);
               const y = paddingY + i * stringSpacing;
-              // Las cuerdas graves (abajo visualmente, índices mayores) son más gruesas
               const thickness = 1 + (i * 0.5); 
               return (
                 <line 
@@ -151,12 +165,17 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
 
               return stringData.map((data, f) => {
                 if (!data.show) return null;
+                
+                // f es el traste (0 = al aire).
                 const cx = f === 0 ? paddingX / 2 : (fretPositions[f - 1] + fretPositions[f]) / 2;
                 
-                const fill = data.isRoot ? "#ef4444" : "#13131a"; 
+                let fill = "#13131a";
+                if (data.isRoot) fill = "#ef4444";
+                else if (data.isFifth) fill = "#3b82f6";
+                
                 const stroke = "#eab308"; 
                 const strokeWidth = "2";
-                const textColor = data.isRoot ? "white" : "#eab308"; 
+                const textColor = (data.isRoot || data.isFifth) ? "white" : "#eab308"; 
                 const radius = data.isRoot ? 16 : 14; 
                 
                 return (

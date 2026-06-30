@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Scale } from 'tonal';
 import { Sequencer } from './components/Sequencer/Sequencer';
 import { TheoryPanel } from './components/TheoryPanel/TheoryPanel';
 import { Fretboard } from './components/Fretboard/Fretboard';
@@ -125,6 +126,7 @@ function App() {
           onTuningChange={setTuningName}
           scaleRoot={selectedScale ? selectedScale.scaleName.split(" ")[0] : null}
           scaleNotes={selectedScale ? selectedScale.notes : []}
+          scaleIntervals={selectedScale ? Scale.get(selectedScale.scaleName).intervals : []}
         />
 
       </main>
