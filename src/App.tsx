@@ -20,7 +20,6 @@ function App() {
   const [tuningName, setTuningName] = useState<TuningName>("Standard");
 
   // Análisis Teórico y Escalas
-  const [currentChordName, setCurrentChordName] = useState<string | null>(null);
   const [selectedScale, setSelectedScale] = useState<ScaleSuggestion | null>(null);
   
   // Computar Análisis de la progresión global
@@ -60,8 +59,7 @@ function App() {
     
     setIsPlaying(true);
     
-    AudioEngine.playSequence(blocks, (chordName, blockId) => {
-      setCurrentChordName(chordName);
+    AudioEngine.playSequence(blocks, (_chordName, blockId) => {
       setActiveBlockId(blockId);
     });
   };
@@ -69,7 +67,6 @@ function App() {
   const handleStop = () => {
     AudioEngine.stop();
     setIsPlaying(false);
-    setCurrentChordName(null);
     setActiveBlockId(null);
   };
 
