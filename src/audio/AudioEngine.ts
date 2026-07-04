@@ -18,11 +18,12 @@ export class AudioEngine {
   
   private static lastCallback: ((chordName: string | null, blockId: string) => void) | null = null;
 
-  private static setupInstruments() {
+  private static async setupInstruments() {
     if (this.isSetup) return;
 
-    const reverb = new Tone.Reverb(2.5).toDestination();
-    reverb.wet.value = 0.3;
+    const reverb = new Tone.Reverb(1.2).toDestination();
+    reverb.wet.value = 0.25;
+    await reverb.ready; // Pre-calentar el Impulse Response para evitar lag en la primera reproducción
     const chorus = new Tone.Chorus(4, 2.5, 0.5).connect(reverb).start();
 
     this.padSynth = new Tone.PolySynth(Tone.FMSynth, {
@@ -30,7 +31,7 @@ export class AudioEngine {
       modulationIndex: 2,
       oscillator: { type: "sine" },
       modulation: { type: "triangle" },
-      envelope: { attack: 0.1, decay: 0.3, sustain: 0.8, release: 2 }
+      envelope: { attack: 0.08, decay: 0.3, sustain: 0.7, release: 0.8 }
     }).connect(chorus);
     this.padSynth.volume.value = -12;
 
@@ -62,7 +63,7 @@ export class AudioEngine {
   }
 
   public static async startAudioContext() {
-    this.setupInstruments();
+    await this.setupInstruments();
     if (!this.isStarted) {
       try {
         await Tone.start();
@@ -135,30 +136,48 @@ export class AudioEngine {
     let eighthNoteCount = 0;
     
     this.drumLoop = new Tone.Loop((time) => {
+      // Corcheas por compás: en X/4 son num*2, en X/8 son num directamente
       const eighthsPerMeasure = this.currentDen === 4 ? this.currentNum * 2 : this.currentNum;
       const step = eighthNoteCount % eighthsPerMeasure;
-      const isDownbeat = step === 0;
-      
-      // Inteligencia rítmica adaptada al compás (Time Signature)
-      let isBackbeat = false;
-      if (this.currentNum === 4 && this.currentDen === 4) isBackbeat = (step === 4);
-      else if (this.currentNum === 3 && this.currentDen === 4) isBackbeat = (step === 2 || step === 4); // Vals moderno
-      else if (this.currentNum === 5 && this.currentDen === 4) isBackbeat = (step === 4 || step === 8); // Polirritmia 5/4
-      else if (this.currentNum === 6 && this.currentDen === 8) isBackbeat = (step === 3); // 6/8
-      else isBackbeat = (step === Math.floor(eighthsPerMeasure / 2));
 
-      // Groove
-      if (eighthNoteCount % 2 === 0 || step === eighthsPerMeasure - 1) {
-        this.hihat?.triggerAttackRelease("32n", time, 0.3);
-      }
+      // ── HI-HAT: Suena en TODAS las corcheas (8 por compás en 4/4) ──
+      this.hihat?.triggerAttackRelease("32n", time, 0.3);
 
-      // El bombo apoya la tónica
-      if (isDownbeat || step === eighthsPerMeasure - 3) {
-        this.kick?.triggerAttackRelease("C1", "8n", time, isDownbeat ? 1 : 0.6);
-      }
-      
-      if (isBackbeat) {
-        this.snare?.triggerAttackRelease("16n", time, 1);
+      // ── Patrón rítmico según el compás ──
+      if (this.currentNum === 4 && this.currentDen === 4) {
+        // 4/4 Estándar: Kick en 1 y 3, Snare en 2 y 4
+        // step 0=beat1, 2=beat2, 4=beat3, 6=beat4
+        if (step === 0 || step === 4) {
+          this.kick?.triggerAttackRelease("C1", "8n", time, step === 0 ? 1 : 0.8);
+        }
+        if (step === 2 || step === 6) {
+          this.snare?.triggerAttackRelease("16n", time, 1);
+        }
+      } else if (this.currentNum === 3 && this.currentDen === 4) {
+        // 3/4 Vals: Kick en 1, Snare en 2 y 3
+        if (step === 0) {
+          this.kick?.triggerAttackRelease("C1", "8n", time, 1);
+        }
+        if (step === 2 || step === 4) {
+          this.snare?.triggerAttackRelease("16n", time, 0.7);
+        }
+      } else if (this.currentNum === 6 && this.currentDen === 8) {
+        // 6/8: Kick en 1 y 4, Snare en 4
+        if (step === 0) {
+          this.kick?.triggerAttackRelease("C1", "8n", time, 1);
+        }
+        if (step === 3) {
+          this.kick?.triggerAttackRelease("C1", "8n", time, 0.6);
+          this.snare?.triggerAttackRelease("16n", time, 0.8);
+        }
+      } else {
+        // Fallback genérico: Kick en 1, Snare en la mitad del compás
+        if (step === 0) {
+          this.kick?.triggerAttackRelease("C1", "8n", time, 1);
+        }
+        if (step === Math.floor(eighthsPerMeasure / 2)) {
+          this.snare?.triggerAttackRelease("16n", time, 1);
+        }
       }
       
       eighthNoteCount++;
@@ -168,11 +187,13 @@ export class AudioEngine {
     this.currentPart = new Tone.Part<any>(() => {}, []).start(0); 
     this.updateSequence(blocks);
 
-    Tone.Transport.start("+0.1");
+    Tone.Transport.start("+0.01");
   }
 
   public static stop() {
     Tone.Transport.stop();
+    // Corte inmediato: matar todas las notas activas del pad
+    this.padSynth?.releaseAll();
     if (this.currentPart) {
       this.currentPart.dispose();
       this.currentPart = null;
