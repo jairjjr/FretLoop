@@ -3,9 +3,13 @@ import { TimeBlock, TimeSignature } from '../core/types';
 
 export class AudioEngine {
   private static padSynth: Tone.PolySynth | null = null;
+  private static bassSynth: Tone.PolySynth | null = null;
   private static kick: Tone.MembraneSynth | null = null;
   private static snare: Tone.NoiseSynth | null = null;
   private static hihat: Tone.MetalSynth | null = null;
+  
+  // Mutes Globales
+  private static mutes = { drums: false, bass: false, keys: false };
   
   private static isSetup = false;
   private static isStarted = false;
@@ -34,6 +38,15 @@ export class AudioEngine {
       envelope: { attack: 0.08, decay: 0.3, sustain: 0.7, release: 0.8 }
     }).connect(chorus);
     this.padSynth.volume.value = -12;
+
+    this.bassSynth = new Tone.PolySynth(Tone.FMSynth, {
+      harmonicity: 1,
+      modulationIndex: 1,
+      oscillator: { type: "triangle" },
+      modulation: { type: "sine" },
+      envelope: { attack: 0.05, decay: 0.4, sustain: 0.8, release: 0.5 }
+    }).toDestination();
+    this.bassSynth.volume.value = -8;
 
     this.kick = new Tone.MembraneSynth({
       pitchDecay: 0.05,
@@ -86,6 +99,17 @@ export class AudioEngine {
     Tone.Transport.bpm.value = bpm;
   }
 
+  public static setMutes(drums: boolean, bass: boolean, keys: boolean) {
+    this.mutes = { drums, bass, keys };
+    
+    // Aplicar mutes al vuelo
+    if (this.padSynth) this.padSynth.volume.rampTo(keys ? -Infinity : -12, 0.1);
+    if (this.bassSynth) this.bassSynth.volume.rampTo(bass ? -Infinity : -8, 0.1);
+    if (this.kick) this.kick.volume.rampTo(drums ? -Infinity : -6, 0.1);
+    if (this.snare) this.snare.volume.rampTo(drums ? -Infinity : -10, 0.1);
+    if (this.hihat) this.hihat.volume.rampTo(drums ? -Infinity : -18, 0.1);
+  }
+
   // Se llama dinámicamente si los bloques cambian mientras se reproduce
   public static updateSequence(blocks: TimeBlock[]) {
     if (!this.currentPart || !this.lastCallback) return;
@@ -112,10 +136,17 @@ export class AudioEngine {
 
     this.currentPart = new Tone.Part((time, value) => {
       if (value.chord) {
-        const notesToPlay = value.chord.notes.map((n: string) => n + "4");
-        notesToPlay.push(value.chord.root + "2");
-        notesToPlay.push(value.chord.root + "3");
-        this.padSynth?.triggerAttackRelease(notesToPlay, value.duration, time);
+        // Teclado (Keys): Acorde en octavas 4 y 5
+        const keysNotes = [
+          ...value.chord.notes.map((n: string) => n + "4"),
+          ...value.chord.notes.map((n: string) => n + "5")
+        ];
+        
+        // Bajo (Bass): Tónica en octavas 1 y 2
+        const bassNotes = [value.chord.root + "1", value.chord.root + "2"];
+        
+        this.padSynth?.triggerAttackRelease(keysNotes, value.duration, time);
+        this.bassSynth?.triggerAttackRelease(bassNotes, value.duration, time);
       }
       Tone.Draw.schedule(() => {
         if (this.lastCallback) this.lastCallback(value.chord ? value.chord.name : null, value.blockId);
@@ -192,8 +223,9 @@ export class AudioEngine {
 
   public static stop() {
     Tone.Transport.stop();
-    // Corte inmediato: matar todas las notas activas del pad
+    // Corte inmediato: matar todas las notas activas
     this.padSynth?.releaseAll();
+    this.bassSynth?.releaseAll();
     if (this.currentPart) {
       this.currentPart.dispose();
       this.currentPart = null;

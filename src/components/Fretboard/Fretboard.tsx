@@ -128,6 +128,21 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
               return null;
             })}
 
+            {/* Números de Traste (Indicadores) */}
+            {fretPositions.map((pos, i) => {
+              if (i === 0) return null;
+              if (inlays.includes(i)) {
+                const cx = (fretPositions[i - 1] + pos) / 2;
+                return (
+                  <g key={`fretnum-${i}`}>
+                    <text x={cx} y={20} fontSize="13" textAnchor="middle" fill="#52525b" fontWeight="bold">{i}</text>
+                    <text x={cx} y={270} fontSize="13" textAnchor="middle" fill="#52525b" fontWeight="bold">{i}</text>
+                  </g>
+                );
+              }
+              return null;
+            })}
+
             {/* Trastes */}
             {fretPositions.map((pos, i) => {
               if (i === 0) return null; // No dibujamos traste en la cejilla (ya tiene su rect)

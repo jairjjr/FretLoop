@@ -17,6 +17,14 @@ interface SequencerProps {
   onBpmChange: (bpm: number) => void;
   timeSignature: TimeSignature;
   onTimeSignatureChange: (ts: TimeSignature) => void;
+  
+  // Mutes
+  isDrumsMuted: boolean;
+  onDrumsMuteChange: (m: boolean) => void;
+  isBassMuted: boolean;
+  onBassMuteChange: (m: boolean) => void;
+  isKeysMuted: boolean;
+  onKeysMuteChange: (m: boolean) => void;
 }
 
 const ROOTS = ["C", "D", "E", "F", "G", "A", "B"];
@@ -30,7 +38,8 @@ const TYPES = [
 
 export const Sequencer: React.FC<SequencerProps> = ({ 
   blocks, onAddBlock, onRemoveBlock, onPlay, onStop, isPlaying, activeBlockId,
-  bpm, onBpmChange, timeSignature, onTimeSignatureChange
+  bpm, onBpmChange, timeSignature, onTimeSignatureChange,
+  isDrumsMuted, onDrumsMuteChange, isBassMuted, onBassMuteChange, isKeysMuted, onKeysMuteChange
 }) => {
   const [selectedRoot, setSelectedRoot] = useState("C");
   const [selectedAccidental, setSelectedAccidental] = useState("");
@@ -103,7 +112,7 @@ export const Sequencer: React.FC<SequencerProps> = ({
             </select>
           </div>
 
-          <div className="w-px h-6 bg-white/10"></div>
+          <div className="w-px h-6 bg-white/10 hidden md:block"></div>
 
           {/* Slider de Tempo */}
           <div className="flex items-center gap-3 min-w-[150px]">
@@ -126,6 +135,30 @@ export const Sequencer: React.FC<SequencerProps> = ({
               />
               <span className="text-[10px] text-gray-400 font-normal mt-0.5">BPM</span>
             </div>
+          </div>
+
+          <div className="w-px h-6 bg-white/10 hidden md:block"></div>
+
+          {/* Mute Toggles */}
+          <div className="flex gap-1 bg-dark-900 p-1 rounded-lg border border-white/5">
+            <button 
+              onClick={() => onKeysMuteChange(!isKeysMuted)}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${!isKeysMuted ? 'bg-primary-main text-white' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+            >
+              🎹 Keys
+            </button>
+            <button 
+              onClick={() => onBassMuteChange(!isBassMuted)}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${!isBassMuted ? 'bg-accent-blue text-white' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+            >
+              🎸 Bass
+            </button>
+            <button 
+              onClick={() => onDrumsMuteChange(!isDrumsMuted)}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${!isDrumsMuted ? 'bg-accent-yellow text-dark-900' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+            >
+              🥁 Drums
+            </button>
           </div>
         </div>
 

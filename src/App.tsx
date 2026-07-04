@@ -20,6 +20,11 @@ function App() {
   // Ajustes de Fretboard
   const [tuningName, setTuningName] = useState<TuningName>("Standard");
 
+  // Mutes
+  const [isDrumsMuted, setIsDrumsMuted] = useState(false);
+  const [isBassMuted, setIsBassMuted] = useState(false);
+  const [isKeysMuted, setIsKeysMuted] = useState(false);
+
   // Análisis Teórico y Escalas
   const [selectedScale, setSelectedScale] = useState<ScaleSuggestion | null>(null);
   
@@ -54,6 +59,11 @@ function App() {
   useEffect(() => {
     AudioEngine.setTimeSignature(timeSignature);
   }, [timeSignature]);
+
+  // Sincronización de Mutes
+  useEffect(() => {
+    AudioEngine.setMutes(isDrumsMuted, isBassMuted, isKeysMuted);
+  }, [isDrumsMuted, isBassMuted, isKeysMuted]);
 
   const handlePlay = async () => {
     if (blocks.length === 0) return;
@@ -93,7 +103,7 @@ function App() {
         {/* Cabecera Minimalista */}
         <div className="text-center md:text-left mb-4">
           <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">
-            FretLoop
+            JJR FretLoop
           </h1>
           <p className="text-gray-400 mt-2 text-lg">Sistema de análisis armónico y práctica de guitarra.</p>
         </div>
@@ -111,6 +121,12 @@ function App() {
           onBpmChange={setBpm}
           timeSignature={timeSignature}
           onTimeSignatureChange={setTimeSignature}
+          isDrumsMuted={isDrumsMuted}
+          onDrumsMuteChange={setIsDrumsMuted}
+          isBassMuted={isBassMuted}
+          onBassMuteChange={setIsBassMuted}
+          isKeysMuted={isKeysMuted}
+          onKeysMuteChange={setIsKeysMuted}
         />
 
         {/* 2. SECCIÓN MEDIA: TEORÍA Y ESCALAS */}
