@@ -8,8 +8,8 @@ export class AudioEngine {
   private static snare: Tone.NoiseSynth | null = null;
   private static hihat: Tone.MetalSynth | null = null;
   
-  // Mutes Globales
-  private static mutes = { drums: false, bass: false, keys: false };
+  // El estado de los mutes se maneja directamente en los volúmenes,
+  // por lo que no es necesario guardar un estado interno que TypeScript rechace.
   
   private static isSetup = false;
   private static isStarted = false;
@@ -100,9 +100,7 @@ export class AudioEngine {
   }
 
   public static setMutes(drums: boolean, bass: boolean, keys: boolean) {
-    this.mutes = { drums, bass, keys };
-    
-    // Aplicar mutes al vuelo
+    // Aplicar mutes al vuelo manipulando el volumen (-Infinity = silencio absoluto)
     if (this.padSynth) this.padSynth.volume.rampTo(keys ? -Infinity : -12, 0.1);
     if (this.bassSynth) this.bassSynth.volume.rampTo(bass ? -Infinity : -8, 0.1);
     if (this.kick) this.kick.volume.rampTo(drums ? -Infinity : -6, 0.1);

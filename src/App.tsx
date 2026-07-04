@@ -102,10 +102,10 @@ function App() {
         
         {/* Cabecera Minimalista */}
         <div className="text-center md:text-left mb-4">
-          <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">
-            JJR FretLoop
+          <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent flex items-center justify-center md:justify-start gap-3">
+            <span className="text-4xl text-white">🎸</span> JJR FretLoop
           </h1>
-          <p className="text-gray-400 mt-2 text-lg">Sistema de análisis armónico y práctica de guitarra.</p>
+          <p className="text-gray-400 mt-2 text-lg">Sistema de análisis armónico y práctica de guitarra. 🎶</p>
         </div>
 
         {/* 1. SECCIÓN SUPERIOR: SEQUENCER */}

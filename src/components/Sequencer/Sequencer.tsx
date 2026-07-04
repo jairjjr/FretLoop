@@ -143,36 +143,36 @@ export const Sequencer: React.FC<SequencerProps> = ({
           <div className="flex gap-1 bg-dark-900 p-1 rounded-lg border border-white/5">
             <button 
               onClick={() => onKeysMuteChange(!isKeysMuted)}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${!isKeysMuted ? 'bg-primary-main text-white' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all hover:scale-105 active:scale-95 ${!isKeysMuted ? 'bg-primary-main text-white drop-shadow-md' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
             >
               🎹 Keys
             </button>
             <button 
               onClick={() => onBassMuteChange(!isBassMuted)}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${!isBassMuted ? 'bg-accent-blue text-white' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all hover:scale-105 active:scale-95 ${!isBassMuted ? 'bg-accent-blue text-white drop-shadow-md' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
             >
               🎸 Bass
             </button>
             <button 
               onClick={() => onDrumsMuteChange(!isDrumsMuted)}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${!isDrumsMuted ? 'bg-accent-yellow text-dark-900' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all hover:scale-105 active:scale-95 ${!isDrumsMuted ? 'bg-accent-yellow text-dark-900 drop-shadow-md' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
             >
               🥁 Drums
             </button>
           </div>
         </div>
 
-        <div className="flex gap-2">
-          {!isPlaying ? (
-            <button onClick={onPlay} className="bg-primary-main hover:bg-primary-glow text-white px-5 py-2 rounded-lg flex items-center gap-2 transition-all font-semibold shadow-lg shadow-indigo-500/20">
-              <Play size={16} fill="currentColor" /> Reproducir
-            </button>
-          ) : (
-            <button onClick={onStop} className="bg-accent-red hover:bg-red-400 text-white px-5 py-2 rounded-lg flex items-center gap-2 transition-all font-semibold shadow-lg shadow-red-500/20">
-              <Square size={16} fill="currentColor" /> Detener
-            </button>
-          )}
-        </div>
+          <div className="flex gap-2">
+            {!isPlaying ? (
+              <button onClick={onPlay} className="bg-primary-main hover:bg-primary-glow text-white px-5 py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95 font-semibold shadow-lg shadow-indigo-500/20">
+                <Play size={16} fill="currentColor" /> Reproducir 🎶
+              </button>
+            ) : (
+              <button onClick={onStop} className="bg-accent-red hover:bg-red-400 text-white px-5 py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95 font-semibold shadow-lg shadow-red-500/20">
+                <Square size={16} fill="currentColor" /> Detener 🛑
+              </button>
+            )}
+          </div>
       </div>
 
       <div className="p-6 flex flex-col gap-6">
@@ -239,19 +239,19 @@ export const Sequencer: React.FC<SequencerProps> = ({
           </div>
 
           {/* 5. Inserción */}
-          <button 
-            onClick={handleAdd}
-            className="flex-1 sm:flex-none bg-dark-700 hover:bg-white/10 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 border border-white/10 font-bold"
-          >
-            <Plus size={20} /> Insertar al Loop
-          </button>
+            <button 
+              onClick={handleAdd}
+              className="flex-1 sm:flex-none bg-dark-700 hover:bg-white/10 hover:scale-105 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 border border-white/10 font-bold hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+            >
+              <Plus size={20} /> Insertar al Loop ✨
+            </button>
         </div>
 
         {/* Timeline Visual */}
         <div className="flex gap-4 overflow-x-auto pb-4 min-h-[120px] items-center p-2 snap-x">
           {blocks.length === 0 ? (
-            <div className="flex-1 flex justify-center border-2 border-dashed border-white/10 rounded-xl p-8">
-              <p className="text-gray-500 font-medium">Línea de tiempo vacía. Combina un Tono Raíz y un Modificador arriba, luego insértalo.</p>
+            <div className="flex-1 flex justify-center border-2 border-dashed border-white/10 rounded-xl p-8 bg-dark-800/30">
+              <p className="text-gray-500 font-medium">Línea de tiempo vacía. Combina un Tono Raíz y un Modificador arriba, luego insértalo. 🚀</p>
             </div>
           ) : (
             blocks.map(block => {
