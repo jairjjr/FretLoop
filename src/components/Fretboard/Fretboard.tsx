@@ -98,6 +98,11 @@ export const Fretboard: React.FC<FretboardProps> = ({ tuningName, onTuningChange
         </select>
       </div>
 
+      {/* Sugerencia de rotación para móviles */}
+      <div className="md:hidden bg-primary-main/10 border border-primary-main/20 text-white/80 p-3 rounded-lg mb-4 text-sm text-center flex items-center justify-center font-medium shadow-inner">
+        📱 Rota tu móvil horizontalmente para ver el mástil completo.
+      </div>
+
       <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
         <div className="min-w-[800px]">
           <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto drop-shadow-2xl rounded-sm">

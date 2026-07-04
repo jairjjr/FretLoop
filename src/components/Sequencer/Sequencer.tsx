@@ -91,12 +91,12 @@ export const Sequencer: React.FC<SequencerProps> = ({
   return (
     <div className="glass-panel w-full flex flex-col overflow-hidden shadow-2xl">
       {/* Cabecera del Sequencer con Controles Integrados */}
-      <div className="bg-dark-900/60 p-4 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-        <h2 className="text-xl font-bold text-white/90 flex items-center gap-2">
+      <div className="bg-dark-900/60 p-4 border-b border-white/5 flex flex-col xl:flex-row justify-between items-center gap-4">
+        <h2 className="text-xl font-bold text-white/90 flex items-center gap-2 w-full xl:w-auto justify-center xl:justify-start">
            Constructor de Secuencias
         </h2>
 
-        <div className="flex items-center gap-6 bg-dark-800/80 px-4 py-2 rounded-lg border border-white/5">
+        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 bg-dark-800/80 p-3 md:px-4 md:py-2 rounded-lg border border-white/5 w-full xl:w-auto">
           {/* Selector de Compás */}
           <div className="flex items-center gap-2">
             <Clock size={16} className="text-gray-400" />
@@ -162,7 +162,7 @@ export const Sequencer: React.FC<SequencerProps> = ({
           </div>
         </div>
 
-          <div className="flex gap-2">
+        <div className="flex gap-2 w-full xl:w-auto justify-center mt-2 xl:mt-0">
             {!isPlaying ? (
               <button onClick={onPlay} className="bg-primary-main hover:bg-primary-glow text-white px-5 py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95 font-semibold shadow-lg shadow-indigo-500/20">
                 <Play size={16} fill="currentColor" /> Reproducir 🎶
