@@ -248,41 +248,41 @@ export const Sequencer: React.FC<SequencerProps> = ({
         </div>
 
         {/* Timeline Visual */}
-        <div className="flex gap-4 overflow-x-auto pb-4 min-h-[120px] items-center p-2 snap-x">
+        <div className="flex gap-4 overflow-x-auto pb-6 pt-4 px-4 min-h-[140px] items-center snap-x custom-scrollbar">
           {blocks.length === 0 ? (
-            <div className="flex-1 flex justify-center border-2 border-dashed border-white/10 rounded-xl p-8 bg-dark-800/30">
-              <p className="text-gray-500 font-medium">Línea de tiempo vacía. Combina un Tono Raíz y un Modificador arriba, luego insértalo. 🚀</p>
+            <div className="flex-1 flex justify-center border-2 border-dashed border-white/10 rounded-xl p-6 md:p-8 bg-dark-800/30">
+              <p className="text-gray-500 font-medium text-sm md:text-base text-center">Línea de tiempo vacía. Combina un Tono y modifícalo arriba, luego insértalo. 🚀</p>
             </div>
           ) : (
             blocks.map(block => {
-              // Calcular ancho base (1 compás en 4/4 = 4 beats = 7rem = 112px).
-              // 1 beat = 1.75rem. Min-width base para legibilidad.
-              const blockWidthRem = Math.max(7, block.durationInBeats * 1.75);
+              // Hacemos el ancho base ligeramente más compacto
+              const blockWidthRem = Math.max(5.5, block.durationInBeats * 1.25);
               const beatsPerBar = parseInt(timeSignature.split('/')[0]);
               const blockBars = block.durationInBeats / beatsPerBar;
 
               return (
                 <div 
                   key={block.id}
-                  style={{ width: `${blockWidthRem}rem` }}
-                  className={`relative flex-shrink-0 h-28 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-300 group snap-center
+                  style={{ width: `${blockWidthRem}rem`, maxWidth: '80vw' }}
+                  className={`relative flex-shrink-0 h-20 md:h-28 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-300 group snap-center
                     ${activeBlockId === block.id 
                       ? 'border-primary-main bg-indigo-900/40 scale-105 drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]' 
                       : 'border-white/10 bg-dark-800 hover:border-white/20'
                     }
                   `}
                 >
-                  <span className="text-3xl font-extrabold text-white/90">{block.chord?.name || "Silencio"}</span>
+                  <span className="text-xl md:text-3xl font-extrabold text-white/90 text-center leading-none px-2">{block.chord?.name || "Silencio"}</span>
                   
                   {blockBars > 1 && (
-                    <span className="text-xs text-accent-blue font-bold mt-1 bg-accent-blue/10 px-2 py-0.5 rounded-full border border-accent-blue/20">
+                    <span className="text-[10px] md:text-xs text-accent-blue font-bold mt-1 bg-accent-blue/10 px-2 py-0.5 rounded-full border border-accent-blue/20">
                       {blockBars} Compases
                     </span>
                   )}
                   
+                  {/* Botón de eliminar (siempre visible en móvil, oculto por defecto en PC) */}
                   <button 
                     onClick={() => onRemoveBlock(block.id)}
-                    className="absolute -top-3 -right-3 bg-dark-900 border border-accent-red p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-accent-red hover:scale-110"
+                    className="absolute -top-3 -right-3 md:-top-4 md:-right-4 bg-dark-900 border border-accent-red p-2 rounded-full md:opacity-0 md:group-hover:opacity-100 transition-all active:bg-accent-red md:hover:bg-accent-red md:hover:scale-110 shadow-lg"
                   >
                     <Trash2 size={14} color="white" />
                   </button>

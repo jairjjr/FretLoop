@@ -2,14 +2,9 @@ import * as Tone from 'tone';
 import { TimeBlock, TimeSignature } from '../core/types';
 
 export class AudioEngine {
-  private static padSynth: Tone.PolySynth | null = null;
-  private static bassSynth: Tone.PolySynth | null = null;
-  private static kick: Tone.MembraneSynth | null = null;
-  private static snare: Tone.NoiseSynth | null = null;
-  private static hihat: Tone.MetalSynth | null = null;
-  
-  // El estado de los mutes se maneja directamente en los volúmenes,
-  // por lo que no es necesario guardar un estado interno que TypeScript rechace.
+  private static padSampler: Tone.Sampler | null = null;
+  private static bassSampler: Tone.Sampler | null = null;
+  private static drumSampler: Tone.Sampler | null = null;
   
   private static isSetup = false;
   private static isStarted = false;
@@ -25,55 +20,46 @@ export class AudioEngine {
   private static async setupInstruments() {
     if (this.isSetup) return;
 
-    // Usamos JCReverb (Algorítmico) en lugar de Reverb (Convolución) para salvar el 80% del CPU en móviles
+    // Efecto espacioso pero hiper-ligero para el piano
     const reverb = new Tone.JCReverb(0.4).toDestination();
     reverb.wet.value = 0.25;
-    
     const chorus = new Tone.Chorus(4, 2.5, 0.5).connect(reverb).start();
 
-    this.padSynth = new Tone.PolySynth(Tone.FMSynth, {
-      harmonicity: 1.5,
-      modulationIndex: 2,
-      oscillator: { type: "sine" },
-      modulation: { type: "triangle" },
-      envelope: { attack: 0.08, decay: 0.3, sustain: 0.7, release: 0.8 }
+    // 1. PIANO (Salamander Grand Piano)
+    this.padSampler = new Tone.Sampler({
+      urls: {
+        C3: "C3.mp3",
+        C4: "C4.mp3",
+        C5: "C5.mp3",
+        C6: "C6.mp3"
+      },
+      baseUrl: "https://tonejs.github.io/audio/salamander/",
     }).connect(chorus);
-    this.padSynth.maxPolyphony = 6; // Limitar polifonía para que el móvil no colapse
-    this.padSynth.volume.value = -12;
+    this.padSampler.volume.value = -6;
 
-    this.bassSynth = new Tone.PolySynth(Tone.FMSynth, {
-      harmonicity: 1,
-      modulationIndex: 1,
-      oscillator: { type: "triangle" },
-      modulation: { type: "sine" },
-      envelope: { attack: 0.05, decay: 0.4, sustain: 0.8, release: 0.5 }
+    // 2. BAJO (Casio Synth Bass)
+    this.bassSampler = new Tone.Sampler({
+      urls: {
+        C2: "C2.mp3",
+      },
+      baseUrl: "https://tonejs.github.io/audio/casio/",
     }).toDestination();
-    this.bassSynth.maxPolyphony = 2; // El bajo no necesita demasiadas voces
-    this.bassSynth.volume.value = -8;
+    this.bassSampler.volume.value = -2;
 
-    this.kick = new Tone.MembraneSynth({
-      pitchDecay: 0.05,
-      octaves: 4,
-      oscillator: { type: "sine" },
-      envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4 }
+    // 3. BATERÍA (Roland CR-78)
+    // Mapeamos las notas arbitrarias C2, D2, F2 a los audios reales
+    this.drumSampler = new Tone.Sampler({
+      urls: {
+        C2: "kick.mp3",
+        D2: "snare.mp3",
+        F2: "hihat.mp3"
+      },
+      baseUrl: "https://tonejs.github.io/audio/drum-samples/CR78/",
     }).toDestination();
-    this.kick.volume.value = -6;
+    this.drumSampler.volume.value = -4;
 
-    this.snare = new Tone.NoiseSynth({
-      noise: { type: "white" },
-      envelope: { attack: 0.005, decay: 0.2, sustain: 0 }
-    }).toDestination();
-    this.snare.volume.value = -10;
-
-    this.hihat = new Tone.MetalSynth({
-      envelope: { attack: 0.001, decay: 0.05, release: 0.01 },
-      harmonicity: 5.1,
-      modulationIndex: 32,
-      resonance: 4000,
-      octaves: 1.5
-    }).toDestination();
-    this.hihat.frequency.value = 200;
-    this.hihat.volume.value = -18;
+    // Esperar a que todos los audios en red terminen de descargarse
+    await Tone.loaded();
 
     this.isSetup = true;
   }
@@ -85,8 +71,7 @@ export class AudioEngine {
         await Tone.start();
         this.isStarted = true;
       } catch (error) {
-        // Fallback defensivo si el navegador bloquea el arranque asíncrono
-        console.warn("FretLoop AudioEngine: Autoplay policy previno el inicio de Tone.js. Requiere interacción manual previa.", error);
+        console.warn("FretLoop AudioEngine: Autoplay policy previno el inicio de Tone.js.", error);
       }
     }
   }
@@ -103,19 +88,14 @@ export class AudioEngine {
   }
 
   public static setMutes(drums: boolean, bass: boolean, keys: boolean) {
-    // Aplicar mutes al vuelo manipulando el volumen (-Infinity = silencio absoluto)
-    if (this.padSynth) this.padSynth.volume.rampTo(keys ? -Infinity : -12, 0.1);
-    if (this.bassSynth) this.bassSynth.volume.rampTo(bass ? -Infinity : -8, 0.1);
-    if (this.kick) this.kick.volume.rampTo(drums ? -Infinity : -6, 0.1);
-    if (this.snare) this.snare.volume.rampTo(drums ? -Infinity : -10, 0.1);
-    if (this.hihat) this.hihat.volume.rampTo(drums ? -Infinity : -18, 0.1);
+    if (this.padSampler) this.padSampler.volume.rampTo(keys ? -Infinity : -6, 0.1);
+    if (this.bassSampler) this.bassSampler.volume.rampTo(bass ? -Infinity : -2, 0.1);
+    if (this.drumSampler) this.drumSampler.volume.rampTo(drums ? -Infinity : -4, 0.1);
   }
 
-  // Se llama dinámicamente si los bloques cambian mientras se reproduce
   public static updateSequence(blocks: TimeBlock[]) {
     if (!this.currentPart || !this.lastCallback) return;
     
-    // Matar la partitura antigua, pero dejar el Transport y la batería corriendo
     this.currentPart.dispose();
     
     const ticksPerBeat = Tone.Time("4n").toTicks();
@@ -137,17 +117,17 @@ export class AudioEngine {
 
     this.currentPart = new Tone.Part((time, value) => {
       if (value.chord) {
-        // Teclado (Keys): Acorde en octavas 4 y 5
+        // Teclado (Keys): Piano en octavas 3 y 4
         const keysNotes = [
-          ...value.chord.notes.map((n: string) => n + "4"),
-          ...value.chord.notes.map((n: string) => n + "5")
+          ...value.chord.notes.map((n: string) => n + "3"),
+          ...value.chord.notes.map((n: string) => n + "4")
         ];
         
-        // Bajo (Bass): Tónica en octavas 1 y 2
+        // Bajo (Bass): Tónica en octava 1 y 2
         const bassNotes = [value.chord.root + "1", value.chord.root + "2"];
         
-        this.padSynth?.triggerAttackRelease(keysNotes, value.duration, time);
-        this.bassSynth?.triggerAttackRelease(bassNotes, value.duration, time);
+        this.padSampler?.triggerAttackRelease(keysNotes, value.duration, time);
+        this.bassSampler?.triggerAttackRelease(bassNotes, value.duration, time);
       }
       Tone.Draw.schedule(() => {
         if (this.lastCallback) this.lastCallback(value.chord ? value.chord.name : null, value.blockId);
@@ -160,7 +140,7 @@ export class AudioEngine {
 
   public static async playSequence(blocks: TimeBlock[], onChordChange: (chordName: string | null, blockId: string) => void) {
     await this.startAudioContext();
-    if (!this.padSynth || !this.kick || !this.snare || !this.hihat) return;
+    if (!this.padSampler || !this.drumSampler || !this.bassSampler) return;
 
     this.stop();
     this.lastCallback = onChordChange;
@@ -168,54 +148,47 @@ export class AudioEngine {
     let eighthNoteCount = 0;
     
     this.drumLoop = new Tone.Loop((time) => {
-      // Corcheas por compás: en X/4 son num*2, en X/8 son num directamente
       const eighthsPerMeasure = this.currentDen === 4 ? this.currentNum * 2 : this.currentNum;
       const step = eighthNoteCount % eighthsPerMeasure;
 
-      // ── HI-HAT: Suena en TODAS las corcheas (8 por compás en 4/4) ──
-      this.hihat?.triggerAttackRelease("32n", time, 0.3);
+      // ── HI-HAT (F2) ──
+      this.drumSampler?.triggerAttackRelease("F2", "32n", time, 0.3);
 
       // ── Patrón rítmico según el compás ──
       if (this.currentNum === 4 && this.currentDen === 4) {
-        // 4/4 Estándar: Kick en 1 y 3, Snare en 2 y 4
-        // step 0=beat1, 2=beat2, 4=beat3, 6=beat4
         if (step === 0 || step === 4) {
-          this.kick?.triggerAttackRelease("C1", "8n", time, step === 0 ? 1 : 0.8);
+          this.drumSampler?.triggerAttackRelease("C2", "8n", time, step === 0 ? 1 : 0.8);
         }
         if (step === 2 || step === 6) {
-          this.snare?.triggerAttackRelease("16n", time, 1);
+          this.drumSampler?.triggerAttackRelease("D2", "16n", time, 1);
         }
       } else if (this.currentNum === 3 && this.currentDen === 4) {
-        // 3/4 Vals: Kick en 1, Snare en 2 y 3
         if (step === 0) {
-          this.kick?.triggerAttackRelease("C1", "8n", time, 1);
+          this.drumSampler?.triggerAttackRelease("C2", "8n", time, 1);
         }
         if (step === 2 || step === 4) {
-          this.snare?.triggerAttackRelease("16n", time, 0.7);
+          this.drumSampler?.triggerAttackRelease("D2", "16n", time, 0.7);
         }
       } else if (this.currentNum === 6 && this.currentDen === 8) {
-        // 6/8: Kick en 1 y 4, Snare en 4
         if (step === 0) {
-          this.kick?.triggerAttackRelease("C1", "8n", time, 1);
+          this.drumSampler?.triggerAttackRelease("C2", "8n", time, 1);
         }
         if (step === 3) {
-          this.kick?.triggerAttackRelease("C1", "8n", time, 0.6);
-          this.snare?.triggerAttackRelease("16n", time, 0.8);
+          this.drumSampler?.triggerAttackRelease("C2", "8n", time, 0.6);
+          this.drumSampler?.triggerAttackRelease("D2", "16n", time, 0.8);
         }
       } else {
-        // Fallback genérico: Kick en 1, Snare en la mitad del compás
         if (step === 0) {
-          this.kick?.triggerAttackRelease("C1", "8n", time, 1);
+          this.drumSampler?.triggerAttackRelease("C2", "8n", time, 1);
         }
         if (step === Math.floor(eighthsPerMeasure / 2)) {
-          this.snare?.triggerAttackRelease("16n", time, 1);
+          this.drumSampler?.triggerAttackRelease("D2", "16n", time, 1);
         }
       }
       
       eighthNoteCount++;
     }, "8n").start(0);
 
-    // Reutilizamos la lógica de inyección de bloques
     this.currentPart = new Tone.Part<any>(() => {}, []).start(0); 
     this.updateSequence(blocks);
 
@@ -224,9 +197,10 @@ export class AudioEngine {
 
   public static stop() {
     Tone.Transport.stop();
-    // Corte inmediato: matar todas las notas activas
-    this.padSynth?.releaseAll();
-    this.bassSynth?.releaseAll();
+    this.padSampler?.releaseAll();
+    this.bassSampler?.releaseAll();
+    this.drumSampler?.releaseAll();
+    
     if (this.currentPart) {
       this.currentPart.dispose();
       this.currentPart = null;
