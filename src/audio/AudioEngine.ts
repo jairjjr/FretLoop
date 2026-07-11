@@ -25,12 +25,14 @@ export class AudioEngine {
   private static async setupInstruments() {
     if (this.isSetup) return;
 
-    const reverb = new Tone.Reverb(1.2).toDestination();
+    // Usamos JCReverb (Algorítmico) en lugar de Reverb (Convolución) para salvar el 80% del CPU en móviles
+    const reverb = new Tone.JCReverb(0.4).toDestination();
     reverb.wet.value = 0.25;
-    await reverb.ready; // Pre-calentar el Impulse Response para evitar lag en la primera reproducción
+    
     const chorus = new Tone.Chorus(4, 2.5, 0.5).connect(reverb).start();
 
     this.padSynth = new Tone.PolySynth(Tone.FMSynth, {
+      maxPolyphony: 6, // Limitar polifonía para que el móvil no colapse
       harmonicity: 1.5,
       modulationIndex: 2,
       oscillator: { type: "sine" },
@@ -40,6 +42,7 @@ export class AudioEngine {
     this.padSynth.volume.value = -12;
 
     this.bassSynth = new Tone.PolySynth(Tone.FMSynth, {
+      maxPolyphony: 2, // El bajo no necesita demasiadas voces
       harmonicity: 1,
       modulationIndex: 1,
       oscillator: { type: "triangle" },
