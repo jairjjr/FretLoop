@@ -32,23 +32,23 @@ export class AudioEngine {
     const chorus = new Tone.Chorus(4, 2.5, 0.5).connect(reverb).start();
 
     this.padSynth = new Tone.PolySynth(Tone.FMSynth, {
-      maxPolyphony: 6, // Limitar polifonía para que el móvil no colapse
       harmonicity: 1.5,
       modulationIndex: 2,
       oscillator: { type: "sine" },
       modulation: { type: "triangle" },
       envelope: { attack: 0.08, decay: 0.3, sustain: 0.7, release: 0.8 }
     }).connect(chorus);
+    this.padSynth.maxPolyphony = 6; // Limitar polifonía para que el móvil no colapse
     this.padSynth.volume.value = -12;
 
     this.bassSynth = new Tone.PolySynth(Tone.FMSynth, {
-      maxPolyphony: 2, // El bajo no necesita demasiadas voces
       harmonicity: 1,
       modulationIndex: 1,
       oscillator: { type: "triangle" },
       modulation: { type: "sine" },
       envelope: { attack: 0.05, decay: 0.4, sustain: 0.8, release: 0.5 }
     }).toDestination();
+    this.bassSynth.maxPolyphony = 2; // El bajo no necesita demasiadas voces
     this.bassSynth.volume.value = -8;
 
     this.kick = new Tone.MembraneSynth({
