@@ -11,11 +11,10 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Copy, 
-  Sparkles, 
   BookOpen, 
-  RotateCcw,
-  Volume2
+  RotateCcw
 } from 'lucide-react';
+
 
 interface SequencerProps {
   blocks: TimeBlock[];
@@ -143,26 +142,38 @@ export const Sequencer: React.FC<SequencerProps> = ({
             <h2 className="text-base font-bold text-white tracking-tight">Constructor de Secuencias</h2>
           </div>
 
-          {/* Menú de Presets Didácticos */}
-          {onLoadPreset && (
-            <div className="flex items-center gap-2">
-              <BookOpen size={14} className="text-gray-400" />
-              <select
-                onChange={(e) => {
-                  const preset = PROGRESSION_PRESETS.find(p => p.id === e.target.value);
-                  if (preset) onLoadPreset(preset);
-                  e.target.value = "";
-                }}
-                defaultValue=""
-                className="bg-[#171923] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-gray-300 focus:outline-none focus:border-amber-500 transition-colors"
+          {/* Menú de Presets Didácticos y Limpieza */}
+          <div className="flex items-center gap-2">
+            {onLoadPreset && (
+              <div className="flex items-center gap-1.5">
+                <BookOpen size={14} className="text-gray-400" />
+                <select
+                  onChange={(e) => {
+                    const preset = PROGRESSION_PRESETS.find(p => p.id === e.target.value);
+                    if (preset) onLoadPreset(preset);
+                    e.target.value = "";
+                  }}
+                  defaultValue=""
+                  className="bg-[#171923] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-gray-300 focus:outline-none focus:border-amber-500 transition-colors"
+                >
+                  <option value="" disabled>Cargar progresión...</option>
+                  {PROGRESSION_PRESETS.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {onClearBlocks && blocks.length > 0 && (
+              <button
+                onClick={onClearBlocks}
+                title="Limpiar secuencia completa"
+                className="p-1.5 bg-[#171923] hover:bg-white/10 border border-white/5 rounded-lg text-gray-400 hover:text-red-400 transition-colors"
               >
-                <option value="" disabled>Cargar progresión...</option>
-                {PROGRESSION_PRESETS.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
+                <RotateCcw size={13} />
+              </button>
+            )}
+          </div>
+
         </div>
 
         {/* Parámetros de Tempo, Compás y Mezcla */}

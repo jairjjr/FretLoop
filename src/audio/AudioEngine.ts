@@ -57,7 +57,6 @@ export class AudioEngine {
     this.fallbackSnareSynth.volume.value = -12;
 
     this.fallbackHihatSynth = new Tone.MetalSynth({
-      frequency: 200,
       envelope: { attack: 0.001, decay: 0.05, release: 0.05 },
       harmonicity: 5.1,
       modulationIndex: 32,

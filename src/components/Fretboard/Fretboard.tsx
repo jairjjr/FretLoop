@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Note, Interval } from 'tonal';
 import { TUNINGS, TuningName, FretboardDisplayMode } from '../../core/types';
-import { SlidersHorizontal, Volume2, Sparkles } from 'lucide-react';
+import { SlidersHorizontal, Volume2 } from 'lucide-react';
 
 interface FretboardProps {
   tuningName: TuningName;

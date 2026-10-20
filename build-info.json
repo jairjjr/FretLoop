@@ -2,7 +2,8 @@
   "project": "fretloop",
   "version": "1.0.0",
   "edition": "Luthier Edition",
-  "build_timestamp_utc": "2026-10-20T13:16:00Z",
+  "build_timestamp_utc": "2026-10-20T13:38:00Z",
+
   "target_environment": "production",
   "features": [
     "interactive-fretboard-audition",

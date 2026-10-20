@@ -92,7 +92,8 @@ export class TheoryEngine {
   public static getRomanNumeral(tonic: string, chord: ChordData): { roman: string; func: string } {
     try {
       const distance = Interval.distance(tonic, chord.root);
-      const semitones = (Interval.semitones(distance) % 12 + 12) % 12;
+      const rawSemitones = Interval.semitones(distance);
+      const semitones = typeof rawSemitones === "number" ? ((rawSemitones % 12) + 12) % 12 : 0;
       
       const isMinorType = chord.type.includes("m") && !chord.type.includes("maj");
       const isDiminished = chord.type.includes("dim") || chord.type.includes("m7b5");

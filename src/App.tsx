@@ -137,6 +137,11 @@ function App() {
     setBlocks(newBlocks);
   };
 
+  const handleClearBlocks = () => {
+    handleStop();
+    setBlocks([]);
+  };
+
   const handleNoteClick = (noteName: string) => {
     AudioEngine.playNote(noteName);
   };
@@ -182,7 +187,9 @@ function App() {
           onMoveBlock={handleMoveBlock}
           onDuplicateBlock={handleDuplicateBlock}
           onLoadPreset={handleLoadPreset}
+          onClearBlocks={handleClearBlocks}
           onPlay={handlePlay}
+
           onStop={handleStop}
           isPlaying={isPlaying}
           activeBlockId={activeBlockId}
