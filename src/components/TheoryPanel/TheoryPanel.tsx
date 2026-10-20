@@ -1,70 +1,99 @@
+import React from 'react';
 import { TheoryLesson, ScaleSuggestion } from '../../core/types';
-import { Lightbulb, Info } from 'lucide-react';
+import { Compass, CheckCircle2, Music2 } from 'lucide-react';
 
 interface TheoryPanelProps {
   lesson: TheoryLesson | null;
   selectedScaleId: string | null;
   onSelectScale: (scale: ScaleSuggestion) => void;
+  onLoadSample?: () => void;
 }
 
-export const TheoryPanel: React.FC<TheoryPanelProps> = ({ lesson, selectedScaleId, onSelectScale }) => {
+export const TheoryPanel: React.FC<TheoryPanelProps> = ({ 
+  lesson, 
+  selectedScaleId, 
+  onSelectScale,
+  onLoadSample 
+}) => {
   if (!lesson) {
     return (
-      <div className="glass-panel p-8 w-full flex flex-col items-center justify-center text-center opacity-50 border-dashed border-2 border-white/20">
-        <Lightbulb size={32} className="text-gray-500 mb-4" />
-        <h3 className="text-xl font-bold text-gray-400">Escuela de Improvisación</h3>
-        <p className="text-sm text-gray-500 mt-2">Añade acordes en el constructor de arriba para recibir una clase teórica y escalas sugeridas.</p>
+      <div className="w-full bg-[#11131a] p-8 rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center text-center gap-3">
+        <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-gray-400">
+          <Compass size={28} />
+        </div>
+        <h3 className="text-base font-bold text-gray-200">Laboratorio de Análisis Armónico</h3>
+        <p className="text-xs text-gray-400 max-w-md">
+          Inserta acordes en la línea de tiempo superior para detectar el centro tonal, modulaciones y escalas recomendadas para solear en el diapasón.
+        </p>
+        {onLoadSample && (
+          <button
+            onClick={onLoadSample}
+            className="mt-2 px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold transition-colors"
+          >
+            Cargar progresión de muestra
+          </button>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="glass-panel p-6 w-full flex flex-col gap-6 bg-gradient-to-br from-dark-800 to-indigo-900/10">
-      
-      {/* Cabecera Lección */}
+    <div className="w-full bg-[#11131a] p-5 md:p-6 rounded-2xl border border-white/10 shadow-2xl flex flex-col gap-5">
+      {/* Cabecera del Centro Tonal */}
       <div className="flex items-start gap-4">
-        <div className="bg-primary-main/20 p-3 rounded-xl border border-primary-main/30">
-          <Lightbulb size={24} className="text-primary-main" />
+        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex-shrink-0">
+          <Compass size={24} />
         </div>
-        <div>
-          <h2 className="text-2xl font-bold text-white/90">Centro Tonal: {lesson.tonalCenter}</h2>
-          <p className="text-gray-400 text-sm mt-1 leading-relaxed max-w-3xl">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase tracking-wider font-bold text-amber-500/90">Centro Tonal Detectado</span>
+          </div>
+          <h2 className="text-2xl font-black text-white tracking-tight">{lesson.tonalCenter}</h2>
+          <p className="text-xs md:text-sm text-gray-300 mt-1 leading-relaxed max-w-3xl whitespace-pre-line">
             {lesson.explanation}
           </p>
         </div>
       </div>
 
-      {/* Botones de Sugerencia de Escala */}
-      <div className="mt-2 border-t border-white/10 pt-6">
-        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Info size={14} /> Selecciona una escala para iluminar en el diapasón:
-        </h3>
+      {/* Selector de Escalas Sugeridas */}
+      <div className="border-t border-white/5 pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+            <Music2 size={13} className="text-amber-500" />
+            Escalas para iluminar en el diapasón
+          </h3>
+          <span className="text-[11px] text-gray-500">Selecciona una escala para mapear sus notas</span>
+        </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {lesson.scaleSuggestions.map(scale => (
-            <button
-              key={scale.id}
-              onClick={() => onSelectScale(scale)}
-              className={`p-4 rounded-xl border text-left transition-all duration-300 group
-                ${selectedScaleId === scale.id 
-                  ? 'bg-accent-yellow/10 border-accent-yellow/50 drop-shadow-[0_0_15px_rgba(234,179,8,0.15)]' 
-                  : 'bg-dark-900/50 border-white/5 hover:border-accent-yellow/30 hover:bg-dark-800'}
-              `}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h4 className={`font-bold text-sm ${selectedScaleId === scale.id ? 'text-accent-yellow' : 'text-gray-300 group-hover:text-white'}`}>
-                  {scale.name}
-                </h4>
-                {selectedScaleId === scale.id && (
-                  <span className="w-2 h-2 rounded-full bg-accent-yellow animate-pulse"></span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500">{scale.description}</p>
-            </button>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {lesson.scaleSuggestions.map(scale => {
+            const isSelected = selectedScaleId === scale.id;
+            return (
+              <button
+                key={scale.id}
+                onClick={() => onSelectScale(scale)}
+                className={`p-3.5 rounded-xl border text-left transition-all duration-150 flex flex-col justify-between gap-2
+                  ${isSelected 
+                    ? 'bg-amber-500/10 border-amber-500/50 shadow-md shadow-amber-500/10 ring-1 ring-amber-500/40' 
+                    : 'bg-[#0b0c10] border-white/5 hover:border-white/15 hover:bg-[#161822]'
+                  }
+                `}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <h4 className={`font-bold text-xs ${isSelected ? 'text-amber-400' : 'text-gray-200'}`}>
+                    {scale.name}
+                  </h4>
+                  {isSelected && (
+                    <CheckCircle2 size={14} className="text-amber-400 flex-shrink-0" />
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-400 leading-normal">{scale.description}</p>
+              </button>
+            );
+          })}
         </div>
       </div>
-      
     </div>
   );
 };
+

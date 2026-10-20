@@ -10,6 +10,8 @@ export interface ChordData {
   name: string;
   notes: string[];
   intervals: string[];
+  romanNumeral?: string;
+  harmonicFunction?: string;
 }
 
 export interface TimeBlock {
@@ -18,16 +20,26 @@ export interface TimeBlock {
   durationInBeats: number;
 }
 
-// NUEVO: Sugerencia de Escala Interactiva
+export type FretboardDisplayMode = "notes" | "intervals";
+
+export interface ProgressionPreset {
+  id: string;
+  name: string;
+  genre: string;
+  description: string;
+  timeSignature: TimeSignature;
+  bpm: number;
+  chords: { chordName: string; bars: number }[];
+}
+
 export interface ScaleSuggestion {
   id: string;
-  name: string; // ej. "Pentatónica Menor"
-  scaleName: string; // Nombre interno de Tonal.js
+  name: string;
+  scaleName: string;
   notes: string[];
   description: string;
 }
 
-// NUEVO: Lección Teórica
 export interface TheoryLesson {
   tonalCenter: string;
   explanation: string;
@@ -55,3 +67,4 @@ export const TUNINGS: Record<TuningName, TuningDef> = {
 };
 
 export type TimeSignature = "3/4" | "4/4" | "5/4" | "6/8";
+

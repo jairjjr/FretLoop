@@ -1,5 +1,79 @@
-import { Chord, Key, Scale, Note } from "tonal";
-import { ChordData, ProgressionAnalysis, TheoryLesson } from "./types";
+import { Chord, Key, Scale, Note, Interval } from "tonal";
+import { ChordData, ProgressionAnalysis, TheoryLesson, ProgressionPreset } from "./types";
+
+export const PROGRESSION_PRESETS: ProgressionPreset[] = [
+  {
+    id: "pop-classic",
+    name: "Pop Rock (I - V - vi - IV)",
+    genre: "Pop / Rock",
+    description: "Estructura armónica elemental para improvisación diatónica fluida.",
+    timeSignature: "4/4",
+    bpm: 120,
+    chords: [
+      { chordName: "C", bars: 1 },
+      { chordName: "G", bars: 1 },
+      { chordName: "Am", bars: 1 },
+      { chordName: "F", bars: 1 }
+    ]
+  },
+  {
+    id: "jazz-cadence",
+    name: "Jazz Standard (ii - V - I - VI)",
+    genre: "Jazz",
+    description: "Cadencia fundamental con dominante secundaria para resolución melódica.",
+    timeSignature: "4/4",
+    bpm: 110,
+    chords: [
+      { chordName: "Dm7", bars: 1 },
+      { chordName: "G7", bars: 1 },
+      { chordName: "Cmaj7", bars: 1 },
+      { chordName: "A7", bars: 1 }
+    ]
+  },
+  {
+    id: "andalusian-cadence",
+    name: "Cadencia Andaluza (i - bVII - bVI - V)",
+    genre: "Flamenco / Rock",
+    description: "Descenso armónico tradicional con tensión cadencial hacia el V grado.",
+    timeSignature: "4/4",
+    bpm: 100,
+    chords: [
+      { chordName: "Am", bars: 1 },
+      { chordName: "G", bars: 1 },
+      { chordName: "F", bars: 1 },
+      { chordName: "E", bars: 1 }
+    ]
+  },
+  {
+    id: "blues-shuffle",
+    name: "Blues Clásico (I7 - IV7 - V7)",
+    genre: "Blues",
+    description: "Base de dominantes con blue notes sobre escalas pentatónicas.",
+    timeSignature: "4/4",
+    bpm: 95,
+    chords: [
+      { chordName: "A7", bars: 2 },
+      { chordName: "D7", bars: 1 },
+      { chordName: "A7", bars: 1 },
+      { chordName: "E7", bars: 1 },
+      { chordName: "D7", bars: 1 }
+    ]
+  },
+  {
+    id: "neo-soul-groove",
+    name: "Neo-Soul Groove (i7 - iv7 - bVII - v7)",
+    genre: "Neo-Soul",
+    description: "Tensiones de 7ma y extensiones para desarrollo melódico horizontal.",
+    timeSignature: "4/4",
+    bpm: 88,
+    chords: [
+      { chordName: "Dm7", bars: 1 },
+      { chordName: "Gm7", bars: 1 },
+      { chordName: "C7", bars: 1 },
+      { chordName: "Am7", bars: 1 }
+    ]
+  }
+];
 
 export class TheoryEngine {
   public static parseChord(chordName: string): ChordData | null {
@@ -15,26 +89,74 @@ export class TheoryEngine {
     };
   }
 
+  public static getRomanNumeral(tonic: string, chord: ChordData): { roman: string; func: string } {
+    try {
+      const distance = Interval.distance(tonic, chord.root);
+      const semitones = (Interval.semitones(distance) % 12 + 12) % 12;
+      
+      const isMinorType = chord.type.includes("m") && !chord.type.includes("maj");
+      const isDiminished = chord.type.includes("dim") || chord.type.includes("m7b5");
+
+      const intervalMap: Record<number, { upper: string; lower: string; defaultFunc: string }> = {
+        0: { upper: "I", lower: "i", defaultFunc: "Tónica" },
+        1: { upper: "bII", lower: "bii", defaultFunc: "Préstamo modal" },
+        2: { upper: "II", lower: "ii", defaultFunc: "Subdominante" },
+        3: { upper: "bIII", lower: "biii", defaultFunc: "Préstamo modal" },
+        4: { upper: "III", lower: "iii", defaultFunc: "Tónica secundaria" },
+        5: { upper: "IV", lower: "iv", defaultFunc: "Subdominante" },
+        6: { upper: "bV", lower: "bv", defaultFunc: "Paso cromático" },
+        7: { upper: "V", lower: "v", defaultFunc: "Dominante" },
+        8: { upper: "bVI", lower: "bvi", defaultFunc: "Préstamo modal" },
+        9: { upper: "VI", lower: "vi", defaultFunc: "Tónica relativa" },
+        10: { upper: "bVII", lower: "bvii", defaultFunc: "Subdominante modal" },
+        11: { upper: "VII", lower: "vii", defaultFunc: "Dominante" },
+      };
+
+      const entry = intervalMap[semitones] || { upper: "I", lower: "i", defaultFunc: "Tónica" };
+      let base = (isMinorType || isDiminished) ? entry.lower : entry.upper;
+      if (isDiminished) base += "°";
+
+      // Añadir indicador de 7ma si el tipo lo contiene
+      if (chord.type === "7") base += "7";
+      else if (chord.type === "maj7") base += "maj7";
+      else if (chord.type === "m7") base += "7";
+
+      return { roman: base, func: entry.defaultFunc };
+    } catch {
+      return { roman: chord.name, func: "Armonía" };
+    }
+  }
+
   public static analyzeProgression(chordNames: string[]): ProgressionAnalysis {
-    const chords = chordNames
+    const rawChords = chordNames
       .map(this.parseChord)
       .filter((c): c is ChordData => c !== null);
 
-    if (chords.length === 0) {
-      return { globalKey: "Unknown", chords: [], lesson: null };
+    if (rawChords.length === 0) {
+      return { globalKey: "Sin datos", chords: [], lesson: null };
     }
 
-    const detection = this.detectTonalCenter(chords);
+    const detection = this.detectTonalCenter(rawChords);
     const primaryRoot = detection.root;
     const isMinor = detection.isMinor;
     
-    let globalKey = `${primaryRoot} ${isMinor ? 'Menor' : 'Mayor'}`;
+    // Asignar grados romanos calculados en relación al centro tonal
+    const chords = rawChords.map(c => {
+      const { roman, func } = this.getRomanNumeral(primaryRoot, c);
+      return {
+        ...c,
+        romanNumeral: roman,
+        harmonicFunction: func
+      };
+    });
+
+    const globalKey = `${primaryRoot} ${isMinor ? 'Menor' : 'Mayor'}`;
     let lesson: TheoryLesson | null = null;
 
     let borrowedWarning = "";
     if (detection.borrowedChords.length > 0) {
       const names = Array.from(new Set(detection.borrowedChords.map(c => c.name))).join(", ");
-      borrowedWarning = `\n\n⚠️ Préstamo Modal: Los acordes [${names}] contienen notas fuera de ${globalKey}. Generarán una tensión deliciosa si los respetas. Durante esos acordes, evita tocar notas a ciegas en la escala y enfócate en sus "puntos rojos y azules" (arpegio).`;
+      borrowedWarning = `\n\nPréstamo modal: Los acordes [${names}] introducen notas cromáticas fuera del marco de ${globalKey}. Al transitar por ellos, utiliza los puntos destacados en rojo (raíz) y azul (quinta) del diapasón para resolver el fraseo con precisión armónica.`;
     }
 
     if (!isMinor) {
@@ -43,49 +165,49 @@ export class TheoryEngine {
       
       lesson = {
         tonalCenter: globalKey,
-        explanation: `Tu centro tonal es ${primaryRoot} Mayor. Para expandir tu vocabulario horizontal y romper la clásica "caja" vertical, visualiza la carretera de notas a lo largo de una sola cuerda en lugar de cruzar seis. Conecta la Tónica, la 3ra y la 5ta deslizando (slides) el dedo índice o anular por el mástil. Al cambiar el acorde, las notas en rojo (Raíz) y azul (3ra y 5ta) te indicarán exactamente dónde puedes "descansar" (resolver) tu fraseo con total seguridad.${borrowedWarning}`,
+        explanation: `El centro armónico gravita en torno a ${primaryRoot} Mayor. Para evitar estancarte en una única posición estática, conecta la tónica, tercera y quinta deslizando a lo largo de una misma cuerda. Las notas en rojo identifican la raíz y las azules marcan los descansos consonantes de quinta justa.${borrowedWarning}`,
         scaleSuggestions: [
           {
             id: 'major-penta',
-            name: `Penta Mayor (${primaryRoot})`,
+            name: `Pentatónica Mayor (${primaryRoot})`,
             scaleName: `${primaryRoot} major pentatonic`,
             notes: Scale.get(`${primaryRoot} major pentatonic`).notes,
-            description: "Clásica y segura. Toca horizontalmente uniendo 2 cajas vecinas."
+            description: "Consonancia directa y segura para conectar cajas adyacentes horizontalmente."
           },
           {
             id: 'relative-minor-penta',
-            name: `Penta Relativa (${relativeMinorRoot}m)`,
+            name: `Pentatónica Relativa (${relativeMinorRoot}m)`,
             scaleName: `${relativeMinorRoot} minor pentatonic`,
             notes: Scale.get(`${relativeMinorRoot} minor pentatonic`).notes,
-            description: "Atajo mental rockero. Desliza sobre las cuerdas agudas."
+            description: "Perspectiva melódica sobre las mismas notas con resolución en registros agudos."
           },
           {
             id: 'major-scale',
             name: `Escala Mayor (Jónica)`,
             scaleName: `${primaryRoot} major`,
             notes: Scale.get(`${primaryRoot} major`).notes,
-            description: "Las 7 notas. Usa los semitonos como puentes de paso rápidos."
+            description: "Espectro diatónico completo de 7 notas para enlaces de semitono."
           },
           {
             id: 'mixolydian-mode',
-            name: `Modo Mixolidio (Disruptiva)`,
+            name: `Modo Mixolidio`,
             scaleName: `${primaryRoot} mixolydian`,
             notes: Scale.get(`${primaryRoot} mixolydian`).notes,
-            description: "Sonido Blues/Funk. Tiene la 7ma menor. Úsala para un groove más sucio."
+            description: "Incorpora la séptima menor para cadencias dominantes y acento blues-rock."
           },
           {
             id: 'lydian-mode',
-            name: `Modo Lidio (Disruptiva)`,
+            name: `Modo Lidio`,
             scaleName: `${primaryRoot} lydian`,
             notes: Scale.get(`${primaryRoot} lydian`).notes,
-            description: "Sonido onírico/Jazz. Tiene la 4ta aumentada. Muy mística y flotante."
+            description: "Cuarta aumentada para generar una atmósfera armónica expansiva y moderna."
           },
           {
             id: 'major-blues',
-            name: `Blues Mayor (Country/Rock)`,
+            name: `Blues Mayor`,
             scaleName: `${primaryRoot} major blues`,
             notes: Scale.get(`${primaryRoot} major blues`).notes,
-            description: "Añade la \"Blue note\" (b3) a la penta mayor. El secreto del country y el rock sureño."
+            description: "Añade la tercera menor como nota de paso cromática hacia la tercera mayor."
           }
         ]
       };
@@ -95,49 +217,49 @@ export class TheoryEngine {
 
       lesson = {
         tonalCenter: globalKey,
-        explanation: `Tu centro es ${primaryRoot} Menor. No te quedes atrapado en la posición 1 de la pentatónica. Oblígate a tocar un solo usando únicamente las cuerdas Sol (G) y Si (B), moviéndote horizontalmente por los trastes. Fíjate en los puntos rojos y azules: son las notas fuertes del acorde que suena en este instante. Terminar una línea melódica en una nota azul (la tercera del acorde) justo en el tiempo fuerte del compás te dará un sonido inmensamente profesional.${borrowedWarning}`,
+        explanation: `El centro armónico gravita en torno a ${primaryRoot} Menor. Para construir solos estructurados, ubica los tonos guía en el diapasón: la raíz (rojo) y la quinta (azul). Finalizar una frase melódica en tiempo fuerte sobre estas notas ancla la sonoridad con máxima solidez.${borrowedWarning}`,
         scaleSuggestions: [
           {
             id: 'minor-penta',
-            name: `Penta Menor (${primaryRoot}m)`,
+            name: `Pentatónica Menor (${primaryRoot}m)`,
             scaleName: `${primaryRoot} minor pentatonic`,
             notes: Scale.get(`${primaryRoot} minor pentatonic`).notes,
-            description: "Tu base de Blues/Rock. Rompe la caja haciendo slides entre posiciones."
+            description: "Base clásica de blues y rock con articulación fluida entre trastes."
           },
           {
             id: 'relative-major-penta',
-            name: `Penta Relativa (${relativeMajorRoot})`,
+            name: `Pentatónica Relativa (${relativeMajorRoot})`,
             scaleName: `${relativeMajorRoot} major pentatonic`,
             notes: Scale.get(`${relativeMajorRoot} major pentatonic`).notes,
-            description: "Mismas notas, distinto enfoque. Piensa en melodías alegres sobre fondo oscuro."
+            description: "Color melódico más abierto sobre una base rítmica menor."
           },
           {
             id: 'minor-scale',
             name: `Menor Natural (Eólica)`,
             scaleName: `${primaryRoot} minor`,
             notes: Scale.get(`${primaryRoot} minor`).notes,
-            description: "Escala completa. Esas dos notas extra te permiten hacer melodías dramáticas."
+            description: "Estructura diatónica menor completa con tensiones de segunda y sexta."
           },
           {
             id: 'dorian-mode',
-            name: `Modo Dórico (Disruptiva)`,
+            name: `Modo Dórico`,
             scaleName: `${primaryRoot} dorian`,
             notes: Scale.get(`${primaryRoot} dorian`).notes,
-            description: "Sabor Jazz/Funk oscuro. Sube la 6ta. Perfecto para grooves largos."
+            description: "Sexta mayor para un carácter sofisticado y brillante dentro del ámbito menor."
           },
           {
             id: 'phrygian-mode',
-            name: `Modo Frigio (Disruptiva)`,
+            name: `Modo Frigio`,
             scaleName: `${primaryRoot} phrygian`,
             notes: Scale.get(`${primaryRoot} phrygian`).notes,
-            description: "Metal oscuro o Flamenco. Baja la 2da. Muy tensa y agresiva."
+            description: "Segunda menor tensa para acentos de raíz flamenca o metal progresivo."
           },
           {
             id: 'minor-blues',
-            name: `Blues Menor (Rock/Metal)`,
+            name: `Blues Menor`,
             scaleName: `${primaryRoot} minor blues`,
             notes: Scale.get(`${primaryRoot} minor blues`).notes,
-            description: "Añade la \"Blue note\" (b5) a la pentatónica. Tensión sucia ideal para rock clásico."
+            description: "Quinta disminuida como puente cromático entre el cuarto y quinto grado."
           }
         ]
       };
@@ -226,3 +348,4 @@ export class TheoryEngine {
     return { ...winner, borrowedChords };
   }
 }
+

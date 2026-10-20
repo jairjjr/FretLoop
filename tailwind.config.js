@@ -8,24 +8,25 @@ export default {
     extend: {
       colors: {
         dark: {
-          900: '#0a0a0f',
-          800: '#13131a',
-          700: '#1c1c26',
+          950: '#07080c',
+          900: '#0b0c10',
+          800: '#11131a',
+          700: '#171923',
+          600: '#222533',
         },
         primary: {
-          main: '#6366f1',
-          glow: '#4f46e5',
+          main: '#f59e0b',
+          glow: '#d97706',
         },
         accent: {
           red: '#ef4444',
           blue: '#3b82f6',
-          yellow: '#eab308',
+          emerald: '#10b981',
+          amber: '#f59e0b',
         }
-      },
-      backgroundImage: {
-        'glass-gradient': 'linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
       }
     },
   },
   plugins: [],
 }
+

@@ -1,24 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { TimeBlock, TimeSignature } from '../../core/types';
-import { TheoryEngine } from '../../core/TheoryEngine';
-import { Play, Square, Plus, Trash2, Clock, Activity } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { TimeBlock, TimeSignature, ProgressionPreset } from '../../core/types';
+import { TheoryEngine, PROGRESSION_PRESETS } from '../../core/TheoryEngine';
+import { 
+  Play, 
+  Square, 
+  Plus, 
+  Trash2, 
+  Clock, 
+  Activity, 
+  ChevronLeft, 
+  ChevronRight, 
+  Copy, 
+  Sparkles, 
+  BookOpen, 
+  RotateCcw,
+  Volume2
+} from 'lucide-react';
 
 interface SequencerProps {
   blocks: TimeBlock[];
   onAddBlock: (block: TimeBlock) => void;
   onRemoveBlock: (id: string) => void;
+  onMoveBlock?: (id: string, direction: "left" | "right") => void;
+  onDuplicateBlock?: (id: string) => void;
+  onLoadPreset?: (preset: ProgressionPreset) => void;
+  onClearBlocks?: () => void;
   onPlay: () => void;
   onStop: () => void;
   isPlaying: boolean;
   activeBlockId: string | null;
-  
-  // Controles inyectados
   bpm: number;
   onBpmChange: (bpm: number) => void;
   timeSignature: TimeSignature;
   onTimeSignatureChange: (ts: TimeSignature) => void;
-  
-  // Mutes
   isDrumsMuted: boolean;
   onDrumsMuteChange: (m: boolean) => void;
   isBassMuted: boolean;
@@ -29,25 +43,60 @@ interface SequencerProps {
 
 const ROOTS = ["C", "D", "E", "F", "G", "A", "B"];
 const TYPES = [
-  { label: "Maj", val: "maj" },
-  { label: "min", val: "m" },
-  { label: "7", val: "7" },
-  { label: "m7", val: "m7" },
-  { label: "maj7", val: "maj7" }
+  { label: "Mayor", val: "maj" },
+  { label: "Menor", val: "m" },
+  { label: "7ma Dominante", val: "7" },
+  { label: "Menor 7ma", val: "m7" },
+  { label: "Mayor 7ma", val: "maj7" }
 ];
 
 export const Sequencer: React.FC<SequencerProps> = ({ 
-  blocks, onAddBlock, onRemoveBlock, onPlay, onStop, isPlaying, activeBlockId,
-  bpm, onBpmChange, timeSignature, onTimeSignatureChange,
-  isDrumsMuted, onDrumsMuteChange, isBassMuted, onBassMuteChange, isKeysMuted, onKeysMuteChange
+  blocks, 
+  onAddBlock, 
+  onRemoveBlock, 
+  onMoveBlock,
+  onDuplicateBlock,
+  onLoadPreset,
+  onClearBlocks,
+  onPlay, 
+  onStop, 
+  isPlaying, 
+  activeBlockId,
+  bpm, 
+  onBpmChange, 
+  timeSignature, 
+  onTimeSignatureChange,
+  isDrumsMuted, 
+  onDrumsMuteChange, 
+  isBassMuted, 
+  onBassMuteChange, 
+  isKeysMuted, 
+  onKeysMuteChange
 }) => {
   const [selectedRoot, setSelectedRoot] = useState("C");
   const [selectedAccidental, setSelectedAccidental] = useState("");
   const [selectedType, setSelectedType] = useState("maj");
   const [selectedBars, setSelectedBars] = useState(1);
-
-  // Estado Local de String para evitar el 'Cero Fantasma' al borrar
   const [localBpm, setLocalBpm] = useState(bpm.toString());
+
+  // Tap tempo: calcula el promedio de intervalos de los últimos toques
+  const tapTimesRef = useRef<number[]>([]);
+  const handleTapTempo = () => {
+    const now = performance.now();
+    const recentTaps = tapTimesRef.current.filter(t => now - t < 3000);
+    recentTaps.push(now);
+    tapTimesRef.current = recentTaps;
+
+    if (recentTaps.length >= 2) {
+      const intervals = [];
+      for (let i = 1; i < recentTaps.length; i++) {
+        intervals.push(recentTaps[i] - recentTaps[i - 1]);
+      }
+      const avgInterval = intervals.reduce((acc, val) => acc + val, 0) / intervals.length;
+      const computedBpm = Math.min(200, Math.max(60, Math.round(60000 / avgInterval)));
+      onBpmChange(computedBpm);
+    }
+  };
 
   useEffect(() => {
     setLocalBpm(bpm.toString());
@@ -64,10 +113,8 @@ export const Sequencer: React.FC<SequencerProps> = ({
 
   const handleBpmBlur = () => {
     let num = parseInt(localBpm, 10);
-    // Validación de seguridad (Zero-Trust)
     if (isNaN(num) || num < 60) num = 60;
     if (num > 200) num = 200;
-    
     setLocalBpm(num.toString());
     if (bpm !== num) {
       onBpmChange(num);
@@ -77,8 +124,6 @@ export const Sequencer: React.FC<SequencerProps> = ({
   const handleAdd = () => {
     const chordStr = `${selectedRoot}${selectedAccidental}${selectedType === "maj" ? "" : selectedType}`;
     const parsed = TheoryEngine.parseChord(chordStr);
-    
-    // Extraemos el numerador del compás para la duración base del bloque
     const beatsPerBar = parseInt(timeSignature.split('/')[0]);
     
     onAddBlock({
@@ -89,203 +134,295 @@ export const Sequencer: React.FC<SequencerProps> = ({
   };
 
   return (
-    <div className="glass-panel w-full flex flex-col overflow-hidden shadow-2xl">
-      {/* Cabecera del Sequencer con Controles Integrados */}
-      <div className="bg-dark-900/60 p-4 border-b border-white/5 flex flex-col xl:flex-row justify-between items-center gap-4">
-        <h2 className="text-xl font-bold text-white/90 flex items-center gap-2 w-full xl:w-auto justify-center xl:justify-start">
-           Constructor de Secuencias
-        </h2>
-
-        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 bg-dark-800/80 p-3 md:px-4 md:py-2 rounded-lg border border-white/5 w-full xl:w-auto">
-          {/* Selector de Compás */}
+    <div className="w-full bg-[#11131a] rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden">
+      {/* Barra superior de transporte y controles globales */}
+      <div className="bg-[#0b0c10] px-5 py-3.5 border-b border-white/5 flex flex-col lg:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
           <div className="flex items-center gap-2">
-            <Clock size={16} className="text-gray-400" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
+            <h2 className="text-base font-bold text-white tracking-tight">Constructor de Secuencias</h2>
+          </div>
+
+          {/* Menú de Presets Didácticos */}
+          {onLoadPreset && (
+            <div className="flex items-center gap-2">
+              <BookOpen size={14} className="text-gray-400" />
+              <select
+                onChange={(e) => {
+                  const preset = PROGRESSION_PRESETS.find(p => p.id === e.target.value);
+                  if (preset) onLoadPreset(preset);
+                  e.target.value = "";
+                }}
+                defaultValue=""
+                className="bg-[#171923] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-gray-300 focus:outline-none focus:border-amber-500 transition-colors"
+              >
+                <option value="" disabled>Cargar progresión...</option>
+                {PROGRESSION_PRESETS.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Parámetros de Tempo, Compás y Mezcla */}
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 w-full lg:w-auto">
+          {/* Compás */}
+          <div className="flex items-center gap-1.5 bg-[#171923] px-3 py-1.5 rounded-xl border border-white/5">
+            <Clock size={14} className="text-gray-400" />
             <select 
               value={timeSignature} 
               onChange={e => onTimeSignatureChange(e.target.value as TimeSignature)}
-              className="bg-transparent text-sm text-white font-bold outline-none cursor-pointer"
+              className="bg-transparent text-xs text-white font-semibold outline-none cursor-pointer"
             >
-              <option value="3/4" className="bg-dark-800">3/4 (Vals)</option>
-              <option value="4/4" className="bg-dark-800">4/4 (Rock/Pop)</option>
-              <option value="5/4" className="bg-dark-800">5/4 (Odd Time)</option>
-              <option value="6/8" className="bg-dark-800">6/8 (Blues/Balada)</option>
+              <option value="3/4" className="bg-[#171923]">3/4 Vals</option>
+              <option value="4/4" className="bg-[#171923]">4/4 Estándar</option>
+              <option value="5/4" className="bg-[#171923]">5/4 Irregular</option>
+              <option value="6/8" className="bg-[#171923]">6/8 Compuesto</option>
             </select>
           </div>
 
-          <div className="w-px h-6 bg-white/10 hidden md:block"></div>
-
-          {/* Slider de Tempo */}
-          <div className="flex items-center gap-3 min-w-[150px]">
-            <Activity size={16} className="text-gray-400" />
+          {/* Tempo y Tap */}
+          <div className="flex items-center gap-2 bg-[#171923] px-3 py-1.5 rounded-xl border border-white/5">
+            <Activity size={14} className="text-gray-400" />
             <input 
               type="range" 
               min="60" max="200" 
               value={bpm}
               onChange={(e) => onBpmChange(Number(e.target.value))}
-              className="w-24 accent-primary-main"
+              className="w-16 accent-amber-500"
             />
-            <div className="flex flex-col items-end justify-center">
-              <input 
-                type="number"
-                min="60" max="200"
-                value={localBpm}
-                onChange={handleBpmInput}
-                onBlur={handleBpmBlur}
-                className="w-14 bg-dark-800 text-white text-sm font-bold text-center rounded border border-white/10 px-1 py-0.5 focus:outline-none focus:border-primary-main"
-              />
-              <span className="text-[10px] text-gray-400 font-normal mt-0.5">BPM</span>
-            </div>
+            <input 
+              type="number"
+              min="60" max="200"
+              value={localBpm}
+              onChange={handleBpmInput}
+              onBlur={handleBpmBlur}
+              className="w-12 bg-[#0b0c10] text-white text-xs font-bold text-center rounded border border-white/10 px-1 py-0.5 focus:outline-none focus:border-amber-500"
+            />
+            <span className="text-[10px] text-gray-400 font-medium">BPM</span>
+            <button
+              onClick={handleTapTempo}
+              title="Haz clic rítmicamente para ajustar el tempo"
+              className="px-2 py-0.5 bg-white/5 hover:bg-white/10 text-[10px] font-bold text-amber-400 rounded transition-colors active:scale-95"
+            >
+              TAP
+            </button>
           </div>
 
-          <div className="w-px h-6 bg-white/10 hidden md:block"></div>
-
-          {/* Mute Toggles */}
-          <div className="flex gap-1 bg-dark-900 p-1 rounded-lg border border-white/5">
+          {/* Mutes de Canales */}
+          <div className="flex bg-[#0b0c10] p-1 rounded-xl border border-white/5 text-xs font-medium">
             <button 
               onClick={() => onKeysMuteChange(!isKeysMuted)}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all hover:scale-105 active:scale-95 ${!isKeysMuted ? 'bg-primary-main text-white drop-shadow-md' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
+              className={`px-2.5 py-1 rounded-lg transition-all ${!isKeysMuted ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-gray-500 hover:text-white'}`}
             >
-              🎹 Keys
+              Teclado
             </button>
             <button 
               onClick={() => onBassMuteChange(!isBassMuted)}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all hover:scale-105 active:scale-95 ${!isBassMuted ? 'bg-accent-blue text-white drop-shadow-md' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
+              className={`px-2.5 py-1 rounded-lg transition-all ${!isBassMuted ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-gray-500 hover:text-white'}`}
             >
-              🎸 Bass
+              Bajo
             </button>
             <button 
               onClick={() => onDrumsMuteChange(!isDrumsMuted)}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all hover:scale-105 active:scale-95 ${!isDrumsMuted ? 'bg-accent-yellow text-dark-900 drop-shadow-md' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
+              className={`px-2.5 py-1 rounded-lg transition-all ${!isDrumsMuted ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-gray-500 hover:text-white'}`}
             >
-              🥁 Drums
+              Batería
             </button>
           </div>
-        </div>
 
-        <div className="flex gap-2 w-full xl:w-auto justify-center mt-2 xl:mt-0">
+          {/* Botón Maestro Reproducir / Detener */}
+          <div>
             {!isPlaying ? (
-              <button onClick={onPlay} className="bg-primary-main hover:bg-primary-glow text-white px-5 py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95 font-semibold shadow-lg shadow-indigo-500/20">
-                <Play size={16} fill="currentColor" /> Reproducir 🎶
+              <button 
+                onClick={onPlay} 
+                className="bg-amber-500 hover:bg-amber-400 text-black px-4 py-1.5 rounded-xl flex items-center gap-1.5 transition-all active:scale-95 font-bold text-xs shadow-lg shadow-amber-500/20"
+              >
+                <Play size={14} fill="currentColor" /> Reproducir
               </button>
             ) : (
-              <button onClick={onStop} className="bg-accent-red hover:bg-red-400 text-white px-5 py-2 rounded-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95 font-semibold shadow-lg shadow-red-500/20">
-                <Square size={16} fill="currentColor" /> Detener 🛑
+              <button 
+                onClick={onStop} 
+                className="bg-red-500 hover:bg-red-400 text-white px-4 py-1.5 rounded-xl flex items-center gap-1.5 transition-all active:scale-95 font-bold text-xs shadow-lg shadow-red-500/20"
+              >
+                <Square size={14} fill="currentColor" /> Detener
               </button>
             )}
           </div>
+        </div>
       </div>
 
-      <div className="p-6 flex flex-col gap-6">
-        {/* Controles de Ingreso (Botones) */}
-        <div className="bg-dark-800/80 p-5 rounded-xl border border-white/5 flex flex-wrap items-center justify-center gap-x-6 gap-y-5 shadow-inner">
-          
-          {/* 1. Raíz */}
-          <div className="flex flex-wrap gap-2 justify-center">
+      {/* Editor y Paleta de Acordes */}
+      <div className="p-5 flex flex-col gap-5">
+        <div className="bg-[#0b0c10] p-4 rounded-xl border border-white/5 flex flex-wrap items-center justify-center gap-x-5 gap-y-4">
+          {/* Tónica */}
+          <div className="flex flex-wrap gap-1.5 justify-center">
             {ROOTS.map(root => (
               <button 
                 key={root}
                 onClick={() => setSelectedRoot(root)}
-                className={`w-11 h-11 rounded-full font-bold text-lg transition-all active:scale-95
-                  ${selectedRoot === root ? 'bg-primary-main text-white drop-shadow-[0_0_10px_rgba(99,102,241,0.6)] scale-110' : 'bg-dark-700 text-gray-400 hover:bg-dark-700/80 hover:text-white'}`}
+                className={`w-9 h-9 rounded-lg font-bold text-sm transition-all active:scale-95
+                  ${selectedRoot === root 
+                    ? 'bg-amber-500 text-black font-extrabold shadow-md scale-105' 
+                    : 'bg-[#171923] text-gray-400 hover:text-white hover:bg-white/5'}`}
               >
                 {root}
               </button>
             ))}
           </div>
 
-          {/* 2. Alteración */}
-          <div className="flex flex-wrap gap-1 justify-center bg-dark-900 p-1.5 rounded-xl border border-white/5">
-            {[{ label: "♮", val: "" }, { label: "#", val: "#" }, { label: "b", val: "b" }].map(acc => (
+          {/* Alteración */}
+          <div className="flex gap-1 bg-[#171923] p-1 rounded-lg border border-white/5">
+            {[{ label: "Natural", val: "" }, { label: "#", val: "#" }, { label: "b", val: "b" }].map(acc => (
               <button 
                 key={acc.label}
                 onClick={() => setSelectedAccidental(acc.val)}
-                className={`w-10 h-10 rounded-lg font-bold text-lg transition-all active:scale-95
-                  ${selectedAccidental === acc.val ? 'bg-primary-main text-white shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                className={`px-2.5 h-7 rounded-md font-bold text-xs transition-all active:scale-95
+                  ${selectedAccidental === acc.val ? 'bg-amber-500 text-black shadow-sm' : 'text-gray-400 hover:text-white'}`}
               >
                 {acc.label}
               </button>
             ))}
           </div>
 
-          {/* 3. Calidad / Tipo */}
-          <div className="flex flex-wrap gap-2 justify-center">
+          {/* Calidad armónica */}
+          <div className="flex flex-wrap gap-1.5 justify-center">
             {TYPES.map(type => (
               <button 
                 key={type.val}
                 onClick={() => setSelectedType(type.val)}
-                className={`px-4 py-3 rounded-lg text-sm font-semibold transition-all active:scale-95
-                  ${selectedType === type.val ? 'bg-accent-blue text-white shadow-lg shadow-blue-500/30' : 'bg-dark-700 text-gray-400 hover:bg-dark-700/80 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95
+                  ${selectedType === type.val 
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'bg-[#171923] text-gray-400 hover:text-white hover:bg-white/5'}`}
               >
                 {type.label}
               </button>
             ))}
           </div>
 
-          {/* 4. Duración */}
-          <div className="flex gap-1 bg-dark-900 p-1.5 rounded-xl border border-white/5">
+          {/* Duración en compases */}
+          <div className="flex items-center gap-1 bg-[#171923] p-1 rounded-lg border border-white/5 text-xs">
             {[1, 2, 3, 4].map(num => (
               <button
                 key={num}
                 onClick={() => setSelectedBars(num)}
-                className={`w-12 h-10 rounded-lg font-bold text-sm transition-all active:scale-95
-                  ${selectedBars === num 
-                    ? 'bg-accent-blue text-white shadow-lg shadow-blue-500/20' 
-                    : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
-                title={`${num} Compás${num > 1 ? 'es' : ''}`}
+                className={`px-2.5 py-1 rounded-md font-bold transition-all active:scale-95
+                  ${selectedBars === num ? 'bg-amber-500 text-black' : 'text-gray-400 hover:text-white'}`}
               >
-                x{num}
+                {num}c
               </button>
             ))}
           </div>
 
-          {/* 5. Inserción */}
-            <button 
-              onClick={handleAdd}
-              className="flex-1 sm:flex-none bg-dark-700 hover:bg-white/10 hover:scale-105 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 border border-white/10 font-bold hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-            >
-              <Plus size={20} /> Insertar al Loop ✨
-            </button>
+          {/* Botón de inserción */}
+          <button 
+            onClick={handleAdd}
+            className="bg-white/10 hover:bg-white/15 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all active:scale-95 border border-white/10 text-xs font-bold"
+          >
+            <Plus size={15} /> Añadir acorde
+          </button>
         </div>
 
-        {/* Timeline Visual */}
-        <div className="flex gap-4 overflow-x-auto pb-6 pt-4 px-4 min-h-[140px] items-center snap-x custom-scrollbar">
+        {/* Línea de Tiempo Armónica */}
+        <div className="flex gap-3 overflow-x-auto pb-4 pt-2 px-2 min-h-[140px] items-center snap-x custom-scrollbar">
           {blocks.length === 0 ? (
-            <div className="flex-1 flex justify-center border-2 border-dashed border-white/10 rounded-xl p-6 md:p-8 bg-dark-800/30">
-              <p className="text-gray-500 font-medium text-sm md:text-base text-center">Línea de tiempo vacía. Combina un Tono y modifícalo arriba, luego insértalo. 🚀</p>
+            <div className="flex-1 flex flex-col sm:flex-row items-center justify-between border border-dashed border-white/15 rounded-xl p-6 bg-[#0b0c10]/40 gap-4">
+              <div className="text-center sm:text-left">
+                <h3 className="text-sm font-semibold text-gray-300">Línea de tiempo vacía</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Configura un acorde arriba o carga una progresión de estudio para comenzar el análisis.</p>
+              </div>
+              <div className="flex gap-2">
+                {onLoadPreset && (
+                  <button
+                    onClick={() => onLoadPreset(PROGRESSION_PRESETS[0])}
+                    className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-semibold transition-colors"
+                  >
+                    Probar Pop (I-V-vi-IV)
+                  </button>
+                )}
+                {onLoadPreset && (
+                  <button
+                    onClick={() => onLoadPreset(PROGRESSION_PRESETS[1])}
+                    className="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-semibold transition-colors"
+                  >
+                    Probar Jazz (ii-V-I-VI)
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
-            blocks.map(block => {
-              // Hacemos el ancho base ligeramente más compacto
-              const blockWidthRem = Math.max(5.5, block.durationInBeats * 1.25);
+            blocks.map((block, index) => {
               const beatsPerBar = parseInt(timeSignature.split('/')[0]);
               const blockBars = block.durationInBeats / beatsPerBar;
+              const blockWidthRem = Math.max(6.5, block.durationInBeats * 1.35);
 
               return (
                 <div 
                   key={block.id}
-                  style={{ width: `${blockWidthRem}rem`, maxWidth: '80vw' }}
-                  className={`relative flex-shrink-0 h-20 md:h-28 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-300 group snap-center
+                  style={{ width: `${blockWidthRem}rem`, maxWidth: '85vw' }}
+                  className={`relative flex-shrink-0 h-28 rounded-xl flex flex-col items-center justify-center border transition-all duration-200 group snap-center select-none
                     ${activeBlockId === block.id 
-                      ? 'border-primary-main bg-indigo-900/40 scale-105 drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]' 
-                      : 'border-white/10 bg-dark-800 hover:border-white/20'
+                      ? 'border-amber-400 bg-amber-500/10 scale-105 shadow-[0_0_20px_rgba(245,158,11,0.25)]' 
+                      : 'border-white/10 bg-[#0b0c10] hover:border-white/20'
                     }
                   `}
                 >
-                  <span className="text-xl md:text-3xl font-extrabold text-white/90 text-center leading-none px-2">{block.chord?.name || "Silencio"}</span>
-                  
-                  {blockBars > 1 && (
-                    <span className="text-[10px] md:text-xs text-accent-blue font-bold mt-1 bg-accent-blue/10 px-2 py-0.5 rounded-full border border-accent-blue/20">
-                      {blockBars} Compases
+                  <span className="text-2xl font-black text-white tracking-tight leading-none px-2">
+                    {block.chord?.name || "Silencio"}
+                  </span>
+
+                  {/* Grado Romano y Función Armónica */}
+                  {block.chord?.romanNumeral && (
+                    <span className="text-[11px] font-bold text-amber-400 mt-1.5 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      {block.chord.romanNumeral} {block.chord.harmonicFunction ? `· ${block.chord.harmonicFunction}` : ''}
                     </span>
                   )}
                   
-                  {/* Botón de eliminar (siempre visible en móvil, oculto por defecto en PC) */}
-                  <button 
-                    onClick={() => onRemoveBlock(block.id)}
-                    className="absolute -top-3 -right-3 md:-top-4 md:-right-4 bg-dark-900 border border-accent-red p-2 rounded-full md:opacity-0 md:group-hover:opacity-100 transition-all active:bg-accent-red md:hover:bg-accent-red md:hover:scale-110 shadow-lg"
-                  >
-                    <Trash2 size={14} color="white" />
-                  </button>
+                  {blockBars > 1 && (
+                    <span className="text-[10px] text-gray-400 font-medium mt-1">
+                      {blockBars} compases
+                    </span>
+                  )}
+
+                  {/* Acciones del Bloque: Mover, Duplicar y Borrar */}
+                  <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {onMoveBlock && index > 0 && (
+                      <button 
+                        onClick={() => onMoveBlock(block.id, "left")}
+                        title="Mover a la izquierda"
+                        className="bg-[#171923] hover:bg-white/10 p-1 rounded text-gray-400 hover:text-white transition-colors"
+                      >
+                        <ChevronLeft size={12} />
+                      </button>
+                    )}
+                    {onMoveBlock && index < blocks.length - 1 && (
+                      <button 
+                        onClick={() => onMoveBlock(block.id, "right")}
+                        title="Mover a la derecha"
+                        className="bg-[#171923] hover:bg-white/10 p-1 rounded text-gray-400 hover:text-white transition-colors"
+                      >
+                        <ChevronRight size={12} />
+                      </button>
+                    )}
+                    {onDuplicateBlock && (
+                      <button 
+                        onClick={() => onDuplicateBlock(block.id)}
+                        title="Duplicar acorde"
+                        className="bg-[#171923] hover:bg-white/10 p-1 rounded text-gray-400 hover:text-white transition-colors"
+                      >
+                        <Copy size={12} />
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => onRemoveBlock(block.id)}
+                      title="Eliminar de la secuencia"
+                      className="bg-[#171923] hover:bg-red-500/20 p-1 rounded text-gray-400 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
               );
             })
@@ -295,3 +432,4 @@ export const Sequencer: React.FC<SequencerProps> = ({
     </div>
   );
 };
+

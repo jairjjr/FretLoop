@@ -3,37 +3,52 @@ import { Scale } from 'tonal';
 import { Sequencer } from './components/Sequencer/Sequencer';
 import { TheoryPanel } from './components/TheoryPanel/TheoryPanel';
 import { Fretboard } from './components/Fretboard/Fretboard';
-import { TheoryEngine } from './core/TheoryEngine';
+import { TheoryEngine, PROGRESSION_PRESETS } from './core/TheoryEngine';
 import { AudioEngine } from './audio/AudioEngine';
-import { TimeBlock, TuningName, TimeSignature, ScaleSuggestion } from './core/types';
+import { 
+  TimeBlock, 
+  TuningName, 
+  TimeSignature, 
+  ScaleSuggestion, 
+  FretboardDisplayMode, 
+  ProgressionPreset 
+} from './core/types';
+import { Music, Activity } from 'lucide-react';
 
 function App() {
-  // Estado Principal
   const [blocks, setBlocks] = useState<TimeBlock[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   
-  // Ajustes de Sequencer
   const [timeSignature, setTimeSignature] = useState<TimeSignature>("4/4");
-  const [bpm, setBpm] = useState(120);
+  const [bpm, setBpm] = useState(110);
 
-  // Ajustes de Fretboard
   const [tuningName, setTuningName] = useState<TuningName>("Standard");
+  const [displayMode, setDisplayMode] = useState<FretboardDisplayMode>("notes");
 
-  // Mutes
   const [isDrumsMuted, setIsDrumsMuted] = useState(false);
   const [isBassMuted, setIsBassMuted] = useState(false);
   const [isKeysMuted, setIsKeysMuted] = useState(false);
 
-  // Análisis Teórico y Escalas
   const [selectedScale, setSelectedScale] = useState<ScaleSuggestion | null>(null);
   
-  // Computar Análisis de la progresión global
   const progression = useMemo(() => {
     return TheoryEngine.analyzeProgression(blocks.map(b => b.chord?.name || ""));
   }, [blocks]);
 
-  // Autoseleccionar la primera escala sugerida cuando cambia la lección
+  // Extraer las notas del acorde actualmente activo durante la reproducción
+  const activeChordNotes = useMemo(() => {
+    if (!activeBlockId) return [];
+    const activeBlock = blocks.find(b => b.id === activeBlockId);
+    return activeBlock?.chord?.notes || [];
+  }, [activeBlockId, blocks]);
+
+  const scaleIntervals = useMemo(() => {
+    if (!selectedScale) return [];
+    return Scale.get(selectedScale.scaleName).intervals || [];
+  }, [selectedScale]);
+
+  // Selección automática de la escala principal al cambiar el análisis
   useEffect(() => {
     if (progression.lesson && progression.lesson.scaleSuggestions.length > 0) {
       setSelectedScale(progression.lesson.scaleSuggestions[0]);
@@ -42,16 +57,12 @@ function App() {
     }
   }, [progression.lesson]);
 
-
-
-  // Actualización dinámica: Si el usuario cambia los bloques mientras suena, actualiza la partitura
   useEffect(() => {
     if (isPlaying) {
       AudioEngine.updateSequence(blocks);
     }
   }, [blocks, isPlaying]);
 
-  // Sincronización con el motor de audio
   useEffect(() => {
     AudioEngine.setBpm(bpm);
   }, [bpm]);
@@ -60,16 +71,13 @@ function App() {
     AudioEngine.setTimeSignature(timeSignature);
   }, [timeSignature]);
 
-  // Sincronización de Mutes
   useEffect(() => {
     AudioEngine.setMutes(isDrumsMuted, isBassMuted, isKeysMuted);
   }, [isDrumsMuted, isBassMuted, isKeysMuted]);
 
   const handlePlay = async () => {
     if (blocks.length === 0) return;
-    
     setIsPlaying(true);
-    
     AudioEngine.playSequence(blocks, (_chordName, blockId) => {
       setActiveBlockId(blockId);
     });
@@ -92,27 +100,88 @@ function App() {
     }
   };
 
+  const handleMoveBlock = (id: string, direction: "left" | "right") => {
+    const idx = blocks.findIndex(b => b.id === id);
+    if (idx === -1) return;
+    const targetIdx = direction === "left" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= blocks.length) return;
+    const copy = [...blocks];
+    const [moved] = copy.splice(idx, 1);
+    copy.splice(targetIdx, 0, moved);
+    setBlocks(copy);
+  };
+
+  const handleDuplicateBlock = (id: string) => {
+    const idx = blocks.findIndex(b => b.id === id);
+    if (idx === -1) return;
+    const target = blocks[idx];
+    const cloned: TimeBlock = {
+      ...target,
+      id: Math.random().toString(36).substring(7)
+    };
+    const copy = [...blocks];
+    copy.splice(idx + 1, 0, cloned);
+    setBlocks(copy);
+  };
+
+  const handleLoadPreset = (preset: ProgressionPreset) => {
+    handleStop();
+    setBpm(preset.bpm);
+    setTimeSignature(preset.timeSignature);
+    const beatsPerBar = parseInt(preset.timeSignature.split('/')[0]);
+    const newBlocks: TimeBlock[] = preset.chords.map(c => ({
+      id: Math.random().toString(36).substring(7),
+      chord: TheoryEngine.parseChord(c.chordName),
+      durationInBeats: beatsPerBar * c.bars
+    }));
+    setBlocks(newBlocks);
+  };
+
+  const handleNoteClick = (noteName: string) => {
+    AudioEngine.playNote(noteName);
+  };
+
   return (
-    <div className="min-h-screen p-4 md:p-8 flex flex-col items-center relative overflow-hidden">
-      {/* Background glow effects */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary-glow/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-accent-blue/10 rounded-full blur-[150px] pointer-events-none" />
-      
-      <main className="max-w-6xl w-full relative z-10 flex flex-col gap-8">
+    <div className="min-h-screen p-4 sm:p-6 md:p-8 flex flex-col items-center bg-[#07080c] text-white">
+      <main className="max-w-6xl w-full flex flex-col gap-6 sm:gap-8">
         
-        {/* Cabecera Minimalista */}
-        <div className="text-center md:text-left mb-4">
-          <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent flex items-center justify-center md:justify-start gap-3">
-            <span className="text-4xl text-white">🎸</span> JJR FretLoop
-          </h1>
-          <p className="text-gray-400 mt-2 text-lg">Sistema de análisis armónico y práctica de guitarra. 🎶</p>
-        </div>
+        {/* Cabecera Editorial Luthier */}
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-black font-black text-lg shadow-lg shadow-amber-500/20">
+              <Music size={20} strokeWidth={2.5} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                  FretLoop
+                </h1>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  Luthier Edition
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Suite de análisis armónico, entrenamiento auditivo y visualización del diapasón
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-gray-400">
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-lg border border-white/5">
+              <Activity size={13} className="text-amber-500" />
+              <span>{blocks.length} {blocks.length === 1 ? 'acorde' : 'acordes'} configurados</span>
+            </span>
+          </div>
+        </header>
 
         {/* 1. SECCIÓN SUPERIOR: SEQUENCER */}
         <Sequencer 
           blocks={blocks}
           onAddBlock={handleAddBlock}
           onRemoveBlock={handleRemoveBlock}
+          onMoveBlock={handleMoveBlock}
+          onDuplicateBlock={handleDuplicateBlock}
+          onLoadPreset={handleLoadPreset}
           onPlay={handlePlay}
           onStop={handleStop}
           isPlaying={isPlaying}
@@ -134,15 +203,20 @@ function App() {
           lesson={progression.lesson}
           selectedScaleId={selectedScale?.id || null}
           onSelectScale={setSelectedScale}
+          onLoadSample={() => handleLoadPreset(PROGRESSION_PRESETS[0])}
         />
 
-        {/* 3. SECCIÓN INFERIOR: DIAPASÓN */}
+        {/* 3. SECCIÓN INFERIOR: DIAPASÓN INTERACTIVO */}
         <Fretboard 
           tuningName={tuningName}
           onTuningChange={setTuningName}
+          displayMode={displayMode}
+          onDisplayModeChange={setDisplayMode}
           scaleRoot={selectedScale ? selectedScale.scaleName.split(" ")[0] : null}
           scaleNotes={selectedScale ? selectedScale.notes : []}
-          scaleIntervals={selectedScale ? Scale.get(selectedScale.scaleName).intervals : []}
+          scaleIntervals={scaleIntervals}
+          activeChordNotes={activeChordNotes}
+          onNoteClick={handleNoteClick}
         />
 
       </main>
@@ -151,3 +225,4 @@ function App() {
 }
 
 export default App;
+
